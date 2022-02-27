@@ -1,0 +1,21 @@
+{
+  "name": "@lightshow/gpio-client",
+  "version": "1.0.0",
+  "description": "Client for controlling device and consuming server messages\"",
+  "main": "index.js",
+  "license": "ISC",
+  "scripts": {
+    "dev": "ts-node-dev -r dotenv/config --files ./src/index.ts",
+    "start": "node -r dotenv/config ./dist",
+    "build": "rm -rf ./dist && tsc --project ./tsconfig.json"
+  },
+  "dependencies": {
+    "dotenv": "^10.0.0",
+    "rpio": "^2.4.2",
+    "socket.io-client": "^4.4.0"
+  },
+  "devDependencies": {
+    "@tsconfig/node16": "^1.0.2",
+    "@types/rpio": "^2.4.2"
+  }
+}

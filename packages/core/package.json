@@ -1,0 +1,22 @@
+{
+  "name": "@lightshow/core",
+  "version": "1.0.0",
+  "description": "Core types",
+  "main": "dist/index.js",
+  "license": "ISC",
+  "scripts": {
+    "postinstall": "if [[ \"$OSTYPE\" == \"darwin\"* ]]; then npm install --no-save speaker --mpg123-backend=openal; fi",
+    "dev": "ts-node-dev -r dotenv/config --files ./src/index.ts",
+    "start": "node -r dotenv/config ./dist",
+    "build": "rm -rf ./dist && tsc --project ./tsconfig.json"
+  },
+  "dependencies": {
+    "dotenv": "^10.0.0",
+    "midi-player-js": "^2.0.13",
+    "socket.io": "^3.0.4",
+    "speaker": "^0.5.3"
+  },
+  "devDependencies": {
+    "@types/lodash": "^4.14.178"
+  }
+}

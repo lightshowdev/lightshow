@@ -1,0 +1,123 @@
+{
+  "boxes": [
+    {
+      "id": "dimmer-pi",
+      "channels": 8,
+      "notes": [["*5"]],
+      "dimmableNotes": ["*5"],
+      "elements": [
+        {
+          "type": "tree",
+          "channel": 1,
+          "x": 600,
+          "y": 290,
+          "width": 109,
+          "height": 126
+        },
+        {
+          "type": "tree",
+          "channel": 2,
+          "x": 796,
+          "y": 442
+        },
+        {
+          "type": "tree",
+          "channel": 3,
+          "x": 718,
+          "y": 32
+        },
+        {
+          "type": "tree",
+          "channel": 4,
+          "x": 63,
+          "y": 133,
+          "width": 226,
+          "height": 173
+        },
+        {
+          "type": "candycane",
+          "channel": 5,
+          "x": 379,
+          "y": 426
+        },
+        {
+          "type": "candycane",
+          "channel": 6,
+          "x": 614,
+          "y": 480
+        },
+        {
+          "type": "candycane",
+          "channel": 7,
+          "x": 953,
+          "y": 209
+        },
+        {
+          "type": "candycane",
+          "channel": 8,
+          "x": 434,
+          "y": 84,
+          "width": 46,
+          "height": 77
+        }
+      ]
+    },
+    {
+      "id": "gpio-pi",
+      "channels": 8,
+      "notes": [["*2"], ["*4"]],
+      "elements": [
+        {
+          "type": "bush",
+          "channel": 1,
+          "x": 1024,
+          "y": 41
+        },
+        {
+          "type": "bush",
+          "channel": 2,
+          "x": 764,
+          "y": 206
+        },
+        {
+          "type": "bush",
+          "channel": 3,
+          "x": 1001,
+          "y": 303
+        },
+        {
+          "type": "bush",
+          "channel": 4,
+          "x": 1127,
+          "y": 442,
+          "width": 166,
+          "height": 142
+        },
+        {
+          "type": "christmastree",
+          "channel": 5,
+          "x": 212,
+          "y": 320
+        },
+        {
+          "type": "christmastree",
+          "channel": 6,
+          "x": 362,
+          "y": 202
+        },
+        {
+          "type": "christmastree",
+          "channel": 7,
+          "x": 1157,
+          "y": 197
+        },
+        {
+          "type": "christmastree",
+          "channel": 8,
+          "x": 561,
+          "y": 95
+        }
+      ]
+    }
+  ]
+}

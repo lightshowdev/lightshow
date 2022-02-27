@@ -1,0 +1,23 @@
+{
+  "name": "@lightshow/sms",
+  "version": "1.0.0",
+  "description": "Play stracks via SMS",
+  "main": "dist/index.js",
+  "types": "src/index.ts",
+  "license": "ISC",
+  "scripts": {
+    "dev": "ts-node-dev -r dotenv/config --files ./src/index.ts",
+    "start": "node -r dotenv/config ./dist",
+    "build": "rm -rf ./dist && tsc --project ./tsconfig.json"
+  },
+  "dependencies": {
+    "@koa/router": "^10.1.1",
+    "dotenv": "^10.0.0",
+    "twilio": "^3.73.1"
+  },
+  "devDependencies": {
+    "@tsconfig/node16": "^1.0.2",
+    "@types/koa": "^2.13.4",
+    "@types/twilio": "^3.19.3"
+  }
+}

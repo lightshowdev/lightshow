@@ -69,7 +69,7 @@ export class TwilioController implements SMSController {
 
   webhookPost = (ctx: Koa.Context) => {
     const { console } = this;
-    if (this.validateRequest(ctx.request)) {
+    if (!this.validateRequest(ctx.request)) {
       const ip =
         ctx.request.headers['x-forwarded-for'] ||
         ctx.request.socket.remoteAddress;

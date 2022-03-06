@@ -95,6 +95,10 @@ const previewApp = new Preview();
 
   if (smsController) {
     const webhookHandler = smsController.getWebhookHandler();
+    logger.debug({
+      msg: 'Registering SMS webhook route',
+      path: webhookHandler.path,
+    });
     router.register(
       webhookHandler.path,
       [webhookHandler.method],

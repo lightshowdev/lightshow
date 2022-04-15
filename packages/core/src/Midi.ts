@@ -39,6 +39,7 @@ export class Midi extends EventEmitter {
     disabledNotes?: string[];
   }) {
     super();
+
     this.io = io;
     this.midiPlayer = new MidiPlayer.Player();
     if (Array.isArray(disabledNotes)) {
@@ -139,12 +140,14 @@ export class Midi extends EventEmitter {
     const dimmerTimeMap: DimmerEvent[] = [];
 
     dimmerNotes.forEach((event) => {
+      // set up the on note
       if (event.name === MidiEvent.NoteOn) {
         dimmerTimeMap.unshift(event);
         return;
       }
 
       if (event.name === MidiEvent.NoteOff) {
+        // Pair the off note
         const pairedNote = dimmerTimeMap.find(
           (n) => n.noteName === event.noteName
         );
@@ -153,9 +156,11 @@ export class Midi extends EventEmitter {
           return;
         }
 
+        // Check for current tempo
         const currentTempoEvent = tempoMap.find(
           (ev) => ev.tick < pairedNote.tick
         );
+
         if (currentTempoEvent?.data) {
           const tickMs = this.getTickMs(division, currentTempoEvent.data);
           pairedNote.length = Math.floor(

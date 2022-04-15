@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import EventEmitter from 'events';
-import { PassThrough } from 'stream';
-import Speaker from 'speaker';
+
+import { AudioStream, PlayOptions, PassStream } from './streams';
 import { Midi, MidiPlayerEvent } from './Midi';
 import type { Server as SocketIOServer } from 'socket.io';
 
@@ -14,6 +14,13 @@ export class Console extends EventEmitter {
   public logger: Logger;
   public disabledNotes: string[] = [];
   public logGroup = 'Console';
+  private currentTrack: Track | null = null;
+  private midiPlayer: Midi | null = null;
+  private audioFileStream: fs.ReadStream | null = null;
+  private audioStream: ReturnType<typeof AudioStream> | null = null;
+  private audioFile: string | undefined;
+
+  private passStream: PassStream | null = null;
 
   constructor({
     playlist,
@@ -39,25 +46,29 @@ export class Console extends EventEmitter {
     disabledNotes?: string[];
     delay?: number;
   }) {
-    let audioFileStream;
-    let midiPlayer: Midi | undefined;
+    this.midiPlayer = null;
+    this.audioFileStream = null;
+    this.audioStream = null;
 
-    const audioFile = this.playlist.getFilePath(track, 'audio');
+    this.passStream = null;
+    this.currentTrack = track;
+
+    this.audioFile = this.playlist.getFilePath(track, 'audio');
     const midiFile = this.playlist.getFilePath(track, 'midi');
-    if (audioFile) {
-      audioFileStream = fs.createReadStream(audioFile);
-    }
+    // if (audioFile) {
+    //   this.audioFileStream = fs.createReadStream(audioFile);
+    // }
 
     if (midiFile) {
-      midiPlayer = new Midi({
+      this.midiPlayer = new Midi({
         io: this.io,
         disabledNotes: disabledNotes || this.disabledNotes,
         logger: this.logger,
       });
-      midiPlayer.loadFile({ file: midiFile });
+      this.midiPlayer.loadFile({ file: midiFile });
     }
 
-    if (!audioFile && !midiFile) {
+    if (!this.audioFile && !midiFile) {
       throw new Error(`No files found for track ${track.name}`);
     }
 
@@ -69,52 +80,82 @@ export class Console extends EventEmitter {
       });
     }
 
-    if (audioFileStream) {
-      this.logger.debug('audio stream loaded');
-      const passStream = new PassThrough();
-
-      let started = false;
+    if (this.audioFile) {
+      this.logger.debug('Audio stream loaded.');
+      const passStream = (this.passStream = new PassStream());
 
       passStream.on('data', (d) => {
-        if (!started) {
+        if (!passStream.started) {
           this.io.emit(IOEvent.TrackStart, track.file);
-          if (midiPlayer) {
-            this.logger.debug('midi play started');
-            midiPlayer.play({ loop: false });
+          if (this.midiPlayer) {
+            this.logger.debug('MIDI play started.');
+            this.midiPlayer.play({ loop: false });
           }
 
-          started = true;
+          passStream.started = true;
         }
       });
 
-      const speaker = new Speaker({
-        //device: 'hw:1,0',
-        channels: 2, // 2 channels
-        bitDepth: 16, // 16-bit samples
-        sampleRate: 44100, // 44,100 Hz sample rate
-      });
-
-      speaker
-        .on('flush', () => {
-          midiPlayer?.stop();
-          this.logger.debug('Speak flushed.');
-          this.emitTrackEnd(track);
-        })
-        .on('error', (err) => {
-          this.logger.error(err);
-          midiPlayer?.stop();
-          this.emitTrackEnd(track);
-        });
-
-      audioFileStream.pipe(passStream).pipe(speaker);
+      this.pipeAudio(track, { start: 0 });
     }
     // If playing a midi file only
-    else if (midiPlayer) {
-      midiPlayer.once(MidiPlayerEvent.EndOfFile, () => {
+    else if (this.midiPlayer) {
+      this.midiPlayer.once(MidiPlayerEvent.EndOfFile, () => {
         this.emitTrackEnd(track);
       });
 
-      midiPlayer.play({ loop: false });
+      this.midiPlayer.play({ loop: false });
+    }
+  }
+
+  private pipeAudio(track: Track, options?: PlayOptions) {
+    if (this.audioFile) {
+      this.audioFileStream = fs.createReadStream(this.audioFile);
+      this.audioStream = AudioStream({ type: 'sox', options });
+
+      this.audioFileStream
+        .on('close', () => {
+          this.midiPlayer?.stop();
+          this.logger.debug('File stream closed and MIDI play stopped.');
+          this.emitTrackEnd(track);
+        })
+        .on('error', (err: Error) => {
+          this.logger.error(err);
+          this.midiPlayer?.stop();
+          this.logger.debug('File stream error and MIDI play stopped.');
+          this.emitTrackEnd(track);
+        });
+
+      this.passStream!.started = false;
+
+      this.audioFileStream.pipe(this.passStream!).pipe(this.audioStream);
+    }
+  }
+
+  pauseTrack() {
+    if (this.audioFileStream) {
+      this.audioFileStream.pause();
+      this.audioFileStream.unpipe();
+      this.passStream!.unpipe();
+    }
+
+    if (this.midiPlayer) {
+      this.midiPlayer.midiPlayer.stop();
+    }
+  }
+
+  resumeTrack() {
+    if (!this.currentTrack) {
+      return;
+    }
+
+    const currentTime = this.audioStream?.currentTime;
+
+    console.log({ pausedTime: currentTime });
+
+    if (currentTime) {
+      this.midiPlayer!.midiPlayer.skipToSeconds(currentTime);
+      this.pipeAudio(this.currentTrack, { start: currentTime });
     }
   }
 

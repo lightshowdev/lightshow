@@ -6,18 +6,29 @@ import { useIO, useMidi } from '../../hooks';
 
 import { Space } from '../../components/Space';
 import { mapElements } from '../../helpers';
+import { Player } from '../../components/Player';
+
+import type { Track } from '@lightshow/core';
 
 const fetcher = (url) => fetch(url).then((res) => res.json());
 
-export default function PreviewYard() {
+export default function PreviewSpace() {
   const router = useRouter();
 
   const spaceId = router.query.id as string;
 
-  const { data: map = {}, error } = useSwr(
+  // Fetch space
+  const { data: map = {}, error: fetchSpaceError } = useSwr(
     spaceId ? `${basePath}/api/map/${spaceId}` : null,
     fetcher
   );
+
+  // Fetch playlist tracks
+  const { data: tracks = [], error } = useSwr('/api/playlist', fetcher);
+
+  const [activeTrack, setActiveTrack] = React.useState<
+    (Track & { paused: boolean }) | null
+  >(null);
 
   const elements = mapElements(map);
 
@@ -28,5 +39,33 @@ export default function PreviewYard() {
     return null;
   }
 
-  return <Space id={spaceId} elements={elements} />;
+  const handlePlayTrack = (track) => {
+    if (track.name === activeTrack?.name) {
+      if (!activeTrack?.paused) {
+        fetch(`/api/console/track/pause`).then(() => {
+          setActiveTrack({ ...track, paused: true });
+        });
+        return;
+      }
+      fetch(`/api/console/track/resume`).then(() => {
+        setActiveTrack({ ...track, paused: false });
+      });
+      return;
+    }
+
+    fetch(`/api/console/track/play?track=${track.name}`).then(() => {
+      setActiveTrack(track);
+    });
+  };
+
+  return (
+    <>
+      <Player
+        tracks={tracks}
+        activeTrack={activeTrack}
+        onPlayClick={handlePlayTrack}
+      />
+      <Space id={spaceId} elements={elements} />
+    </>
+  );
 }

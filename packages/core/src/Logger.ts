@@ -7,12 +7,40 @@ export type LogPayload =
 
 export class Logger {
   public levels: LogLevel[];
+  public formatters: {
+    [transport: string]: ({
+      level,
+      payload,
+      group,
+    }: {
+      level: LogLevel;
+      payload: LogPayload;
+      group?: string;
+    }) => void;
+  } = {
+    console: ({ level, payload, group }) => {
+      let formattedPayload = payload;
+      if (typeof payload !== 'string') {
+        formattedPayload = JSON.stringify(payload);
+      }
+      return `[${level}] ${group ? `<${group}> ` : ''}${formattedPayload}`;
+    },
+  };
 
-  constructor({ level }: { level: LogLevel | LogLevel[] }) {
+  constructor({
+    level,
+    formatters,
+  }: {
+    level: LogLevel | LogLevel[];
+    formatters?: Logger['formatters'];
+  }) {
     if (level === '*') {
       level = ['debug', 'info', 'error'];
     }
     this.levels = Array.isArray(level) ? level : [level];
+    if (formatters) {
+      this.formatters = { ...this.formatters, ...formatters };
+    }
   }
 
   log({
@@ -28,22 +56,19 @@ export class Logger {
       return;
     }
 
-    let logPayload = payload;
-    if (group) {
-      logPayload = { group, payload };
-    }
+    const formattedLog = this.formatters.console({ level, group, payload });
 
     if (level === 'error') {
-      console.error(logPayload);
+      console.error(formattedLog);
       return;
     }
 
     if (level === 'info') {
-      console.info(logPayload);
+      console.info(formattedLog);
       return;
     }
 
-    console.log(logPayload);
+    console.log(formattedLog);
   }
 
   debug(payload: LogPayload) {

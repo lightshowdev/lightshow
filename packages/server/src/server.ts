@@ -10,10 +10,10 @@ import { Playlist, Console, Logger } from '@lightshow/core';
 
 import SMSConroller, { SMSConfig } from '@lightshow/sms';
 
+import { playlistRouter, consoleRouter } from './routes';
+
 const { SMS_PROVIDER = 'none', TRACKS_PATH = '../../config/tracks' } =
   process.env;
-
-const START_DELAY = parseInt(process.env.START_DELAY || '5000');
 
 const previewApp = new Preview();
 
@@ -43,29 +43,6 @@ const previewApp = new Preview();
     logger,
   });
 
-  router.get('/play', async (ctx) => {
-    const { track: trackName } = ctx.query;
-    const track = trackConsole.playlist.getTrack(trackName as string);
-
-    if (track) {
-      try {
-        setTimeout(() => {
-          trackConsole.playTrack({ track });
-        });
-
-        ctx.body = `Now playing "${track.name}" by ${track.artist}`;
-      } catch (err: any) {
-        logger.error(err);
-        ctx.status = 400;
-        ctx.body = err?.message;
-      }
-
-      return;
-    }
-
-    ctx.body = `Track "${trackName}" not found.`;
-  });
-
   router.get('/test-io', async (ctx) => {
     const { note, event, velocity, length, sameNotes } = ctx.query;
 
@@ -87,12 +64,6 @@ const previewApp = new Preview();
     ctx.body = { event, note, velocity };
   });
 
-  router.get('/disable-notes', async (ctx) => {
-    const { notes } = ctx.query;
-    trackConsole.setDisabledNotes((notes as string).split(','));
-    ctx.body = { disabled: notes };
-  });
-
   if (smsController) {
     const webhookHandler = smsController.getWebhookHandler();
     logger.debug({
@@ -111,12 +82,23 @@ const previewApp = new Preview();
     ctx.respond = false;
   });
 
+  playlistRouter.prefix('/api');
+  consoleRouter.prefix('/api');
+
   app
     .use(bodyParser())
     .use(async (ctx, next) => {
       ctx.res.statusCode = 200;
       await next();
     })
+    .use(async (ctx, next) => {
+      ctx.state.playlist = playlist;
+      ctx.state.logger = logger;
+      ctx.state.trackConsole = trackConsole;
+      await next();
+    })
+    .use(playlistRouter.routes())
+    .use(consoleRouter.routes())
     .use(router.routes());
 
   await server.listen(3000, '0.0.0.0');

@@ -5,7 +5,7 @@
   "workspaces": [
     "packages/*"
   ],
-  "author": "lighshow/dev <me@lightshow.dev>",
+  "author": "Patrick Dillon <me@lightshow.dev>",
   "license": "MIT",
   "scripts": {
     "config:copy": "cp -r config.sample config",

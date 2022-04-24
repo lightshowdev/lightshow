@@ -35,6 +35,12 @@ export class Console extends EventEmitter {
     this.playlist = playlist;
     this.io = io;
     this.logger = logger.getGroupLogger(this.logGroup);
+    this.io.on('connection', (socket) => {
+      if (socket.handshake.auth?.id === 'player') {
+        this.logger.debug('Socket connecion for seek established.');
+        socket.on(IOEvent.TrackSeek, this.trackSeekListener);
+      }
+    });
   }
 
   playTrack({
@@ -91,7 +97,7 @@ export class Console extends EventEmitter {
             this.logger.debug('MIDI play started.');
             this.midiPlayer.play({ loop: false });
           }
-
+          passStream.startTime = new Date().valueOf();
           passStream.started = true;
         }
       });
@@ -127,6 +133,15 @@ export class Console extends EventEmitter {
         });
 
       this.passStream!.started = false;
+      this.passStream!.startTime = this.passStream!.currentTime;
+      this.audioStream.on('time', (timeData) => {
+        this.io.emit(IOEvent.TrackTimeChange, timeData);
+        this.passStream!.currentTime = new Date().valueOf();
+
+        const timeElapsed =
+          (this.passStream!.currentTime - this.passStream!.startTime) / 1000;
+        // console.log({ time: timeData.time, timeElapsed });
+      });
 
       this.audioFileStream.pipe(this.passStream!).pipe(this.audioStream);
     }
@@ -142,6 +157,8 @@ export class Console extends EventEmitter {
     if (this.midiPlayer) {
       this.midiPlayer.midiPlayer.stop();
     }
+
+    this.io.emit(IOEvent.TrackPause);
   }
 
   resumeTrack() {
@@ -149,15 +166,36 @@ export class Console extends EventEmitter {
       return;
     }
 
-    const currentTime = this.audioStream?.currentTime;
+    // const currentTime = this.audioStream?.currentTime;
+    const startSeconds =
+      (this.passStream!.currentTime - this.passStream!.startTime) / 1000 +
+      this.passStream!.startSeconds;
 
-    console.log({ pausedTime: currentTime });
+    //  console.log({ pausedTime: startSeconds });
 
-    if (currentTime) {
-      this.midiPlayer!.midiPlayer.skipToSeconds(currentTime);
-      this.pipeAudio(this.currentTrack, { start: currentTime });
+    this.passStream!.startSeconds = startSeconds;
+
+    if (startSeconds) {
+      this.midiPlayer!.midiPlayer.skipToSeconds(startSeconds);
+      this.pipeAudio(this.currentTrack, { start: startSeconds });
+      this.io.emit(IOEvent.TrackResume);
     }
   }
+
+  trackSeekListener = (time: number) => {
+    this.logger.debug(`Seeking to ${time}`);
+    if (!this.currentTrack) {
+      return;
+    }
+
+    this.pauseTrack();
+
+    setTimeout(() => {
+      this.midiPlayer!.midiPlayer.skipToSeconds(time);
+      this.pipeAudio(this.currentTrack!, { start: time });
+      this.io.emit(IOEvent.TrackResume);
+    });
+  };
 
   emitTrackEnd(track: Track) {
     this.io.emit(IOEvent.TrackEnd, track);

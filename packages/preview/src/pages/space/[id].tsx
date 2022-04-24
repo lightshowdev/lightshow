@@ -39,7 +39,7 @@ export default function PreviewSpace() {
     return null;
   }
 
-  const handlePlayTrack = (track) => {
+  const handlePlayTrack = (track, action) => {
     if (track.name === activeTrack?.name) {
       if (!activeTrack?.paused) {
         fetch(`/api/console/track/pause`).then(() => {

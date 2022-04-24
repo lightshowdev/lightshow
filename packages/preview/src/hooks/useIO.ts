@@ -4,12 +4,13 @@ import { dimmableNotes } from '@lightshow/core/dist/Note';
 import { io } from 'socket.io-client';
 
 export const useIO = (isIO: boolean, elements: any[]) => {
+  const socketRef = React.useRef(io({}));
+
   React.useEffect(() => {
-    if (!isIO) {
+    if (!isIO || !socketRef.current) {
       return;
     }
-
-    const socket = io({});
+    const socket = socketRef.current;
 
     socket
       .on(IOEvent.TrackStart, () => {
@@ -78,5 +79,6 @@ export const useIO = (isIO: boolean, elements: any[]) => {
           }
         });
       });
-  }, [isIO, elements]);
+  }, [isIO, elements, socketRef]);
+  return socketRef.current;
 };

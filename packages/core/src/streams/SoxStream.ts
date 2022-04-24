@@ -3,11 +3,21 @@ import { ChildProcess, spawn } from 'child_process';
 
 import type { PlayOptions } from './AudioStream';
 
+const metaProps = [
+  'encoding',
+  'channels',
+  'samplerate',
+  'replaygain',
+  'duration',
+];
+
 export class SoxStream extends Writable {
   soxProcess: ChildProcess | null;
   soxPath: string = '/usr/local/bin/sox';
   playOptions?: PlayOptions;
-  public currentTime: number = 0;
+  currentTime: number = 0;
+  duration: number = 0;
+  meta: Record<string, string> = {};
 
   constructor({ path, options }: { path?: string; options?: PlayOptions }) {
     super();
@@ -33,7 +43,6 @@ export class SoxStream extends Writable {
     }
 
     const soxArgs = ['-', '-d'].concat(trimArgs);
-    console.log(soxArgs);
 
     this.soxProcess = spawn(this.soxPath, soxArgs);
 
@@ -72,22 +81,38 @@ export class SoxStream extends Writable {
 
   onSoxStdOut(data: Buffer) {
     const msg = data.toString().trim();
+
     if (!msg.startsWith('In:')) {
-      // Log initial console metadata info
-      console.log(`message: ${msg}\n\n`);
-      return;
+      const metaParts = msg
+        .replace(/\n/g, ': ')
+        .split(': ')
+        .map((p) => p.trim());
+
+      metaParts.forEach((p, i) => {
+        if (metaProps.includes(p.toLowerCase())) {
+          this.meta[p.toLowerCase()] = metaParts[i + 1];
+        }
+      });
+
+      console.log(this.meta);
+      if (this.meta.duration) {
+        this.duration = convertTimeStringtoSeconds(this.meta.duration);
+      }
     }
 
     const [, currentTime] = msg.split(' ');
-    this.currentTime = currentTime
-      .split(':')
-      .reverse()
-      .reduce(
-        (val, chunk, index) => val + parseFloat(chunk) * (60 * index || 1),
-        0
-      );
-
+    this.currentTime = convertTimeStringtoSeconds(currentTime);
     // Log time stamp
-    console.log(currentTime);
+    this.emit('time', { time: this.currentTime, duration: this.duration });
   }
+}
+
+function convertTimeStringtoSeconds(timeString: string) {
+  return timeString
+    .split(':')
+    .reverse()
+    .reduce(
+      (val, chunk, index) => val + parseFloat(chunk) * (60 * index || 1),
+      0
+    );
 }

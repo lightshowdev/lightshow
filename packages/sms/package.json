@@ -12,7 +12,6 @@
   },
   "dependencies": {
     "@koa/router": "^10.1.1",
-    "@types/twilio": "^3.19.3",
     "dotenv": "^10.0.0",
     "twilio": "^3.76.1"
   },

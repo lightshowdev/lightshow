@@ -4,6 +4,9 @@ import http from 'http';
 import { Server as SocketIOServer } from 'socket.io';
 import Router from '@koa/router';
 import bodyParser from 'koa-bodyparser';
+import serve from 'koa-static';
+import path from 'path';
+
 import Preview from '@lightshow/preview';
 
 import { Playlist, Console, Logger } from '@lightshow/core';
@@ -99,6 +102,8 @@ const previewApp = new Preview();
     })
     .use(playlistRouter.routes())
     .use(consoleRouter.routes())
+    .use(serve(path.resolve(TRACKS_PATH)))
+    // this should be last
     .use(router.routes());
 
   await server.listen(3000, '0.0.0.0');

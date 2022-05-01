@@ -3,8 +3,9 @@ import Document, { Html, Head, Main, NextScript } from 'next/document';
 import createEmotionServer from '@emotion/server/create-instance';
 import theme from '../theme';
 import createEmotionCache from '../helpers/createEmotionCache';
+import type MyApp from './_app';
 
-export default class MyDocument extends Document {
+export default class MyDocument extends Document<{ emotionStyleTags: any }> {
   render() {
     return (
       <Html lang="en">
@@ -17,6 +18,7 @@ export default class MyDocument extends Document {
             href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap"
           />
           {/* Inject MUI styles first to match with the prepend: true configuration. */}
+
           {this.props.emotionStyleTags}
         </Head>
         <body>
@@ -62,7 +64,7 @@ MyDocument.getInitialProps = async (ctx) => {
 
   ctx.renderPage = () =>
     originalRenderPage({
-      enhanceApp: (App) =>
+      enhanceApp: (App: typeof MyApp) =>
         function EnhanceApp(props) {
           return <App emotionCache={cache} {...props} />;
         },

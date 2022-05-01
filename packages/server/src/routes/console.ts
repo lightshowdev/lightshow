@@ -19,9 +19,10 @@ consoleRouter.get('/console/track/play', async (ctx) => {
   const track = trackConsole.playlist.getTrack(trackName as string);
 
   if (track) {
+    trackConsole.loadTrack({ track });
     try {
       setTimeout(() => {
-        trackConsole.playTrack({ track });
+        trackConsole.playTrack();
       });
 
       ctx.body = `Now playing "${track.name}" by ${track.artist}`;
@@ -37,18 +38,17 @@ consoleRouter.get('/console/track/play', async (ctx) => {
   ctx.body = `Track "${trackName}" not found.`;
 });
 
-consoleRouter.get('/console/track/pause', async (ctx) => {
-  const { trackConsole }: { trackConsole: Console } = ctx.state;
+consoleRouter.get('/console/track/load', async (ctx) => {
+  const { track: trackName } = ctx.query;
 
-  trackConsole.pauseTrack();
+  const { trackConsole, logger }: { trackConsole: Console; logger: Logger } =
+    ctx.state;
 
-  ctx.body = `Track paused`;
-});
+  const track = trackConsole.playlist.getTrack(trackName as string);
 
-consoleRouter.get('/console/track/resume', async (ctx) => {
-  const { trackConsole }: { trackConsole: Console } = ctx.state;
-
-  trackConsole.resumeTrack();
-
-  ctx.body = `Track resumed`;
+  if (track) {
+    trackConsole.loadTrack({ track, formats: ['midi'] });
+    ctx.body = `Track loaded`;
+  }
+  ctx.body = `Track "${trackName}" not found.`;
 });

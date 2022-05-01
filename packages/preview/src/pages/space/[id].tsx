@@ -39,21 +39,8 @@ export default function PreviewSpace() {
     return null;
   }
 
-  const handlePlayTrack = (track, action) => {
-    if (track.name === activeTrack?.name) {
-      if (!activeTrack?.paused) {
-        fetch(`/api/console/track/pause`).then(() => {
-          setActiveTrack({ ...track, paused: true });
-        });
-        return;
-      }
-      fetch(`/api/console/track/resume`).then(() => {
-        setActiveTrack({ ...track, paused: false });
-      });
-      return;
-    }
-
-    fetch(`/api/console/track/play?track=${track.name}`).then(() => {
+  const handlePlayTrack = (track, action?: string) => {
+    fetch(`/api/console/track/load?track=${track.name}`).then(() => {
       setActiveTrack(track);
     });
   };

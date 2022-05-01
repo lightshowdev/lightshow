@@ -15,11 +15,11 @@ export class Console extends EventEmitter {
   public disabledNotes: string[] = [];
   public logGroup = 'Console';
   private currentTrack: Track | null = null;
+  private audioFile: string | null | undefined = null;
+  private midiFile: string | null | undefined = null;
   private midiPlayer: Midi | null = null;
   private audioFileStream: fs.ReadStream | null = null;
   private audioStream: ReturnType<typeof AudioStream> | null = null;
-  private audioFile: string | undefined;
-
   private passStream: PassStream | null = null;
 
   constructor({
@@ -37,44 +37,52 @@ export class Console extends EventEmitter {
     this.logger = logger.getGroupLogger(this.logGroup);
     this.io.on('connection', (socket) => {
       if (socket.handshake.auth?.id === 'player') {
-        this.logger.debug('Socket connecion for seek established.');
-        socket.on(IOEvent.TrackSeek, this.trackSeekListener);
+        this.logger.debug('Socket connecion for player controls established.');
+        socket.on(IOEvent.TrackSeek, (time: number) => this.seekTrack(time));
+        socket.on(IOEvent.TrackPause, () => this.pauseTrack());
+        socket.on(IOEvent.TrackResume, (time: number) =>
+          this.resumeTrack(time)
+        );
+        socket.on(IOEvent.TrackPlay, () => this.playTrack());
+        socket.on(IOEvent.TrackStop, () => this.stopTrack());
       }
     });
   }
 
-  playTrack({
+  loadTrack({
     track,
     disabledNotes,
-    delay,
+    formats = ['audio', 'midi'],
   }: {
     track: Track;
     disabledNotes?: string[];
-    delay?: number;
+    formats?: ('audio' | 'midi')[];
   }) {
-    this.midiPlayer = null;
-    this.audioFileStream = null;
-    this.audioStream = null;
-
-    this.passStream = null;
     this.currentTrack = track;
 
-    this.audioFile = this.playlist.getFilePath(track, 'audio');
-    const midiFile = this.playlist.getFilePath(track, 'midi');
-    // if (audioFile) {
-    //   this.audioFileStream = fs.createReadStream(audioFile);
-    // }
+    this.clearCaches();
 
-    if (midiFile) {
+    if (formats.includes('audio')) {
+      this.audioFile = this.playlist.getFilePath(track, 'audio');
+      this.logger.debug('Audio file loaded.');
+    }
+
+    if (formats.includes('midi')) {
+      this.midiFile = this.playlist.getFilePath(track, 'midi');
+      this.logger.debug('Midi file loaded.');
+    }
+
+    if (this.midiFile) {
       this.midiPlayer = new Midi({
         io: this.io,
         disabledNotes: disabledNotes || this.disabledNotes,
         logger: this.logger,
       });
-      this.midiPlayer.loadFile({ file: midiFile });
+
+      this.midiPlayer.loadFile({ file: this.midiFile });
     }
 
-    if (!this.audioFile && !midiFile) {
+    if (!this.audioFile && !this.midiFile) {
       throw new Error(`No files found for track ${track.name}`);
     }
 
@@ -85,23 +93,17 @@ export class Console extends EventEmitter {
         this.io.emit(IOEvent.MapNotes, deviceName, mapping);
       });
     }
+    this.logger.debug('Track loaded.');
+  }
+
+  playTrack(delay?: number) {
+    if (!this.currentTrack) {
+      throw new Error('No track loaded.');
+    }
+
+    const track = this.currentTrack;
 
     if (this.audioFile) {
-      this.logger.debug('Audio stream loaded.');
-      const passStream = (this.passStream = new PassStream());
-
-      passStream.on('data', (d) => {
-        if (!passStream.started) {
-          this.io.emit(IOEvent.TrackStart, track.file);
-          if (this.midiPlayer) {
-            this.logger.debug('MIDI play started.');
-            this.midiPlayer.play({ loop: false });
-          }
-          passStream.startTime = new Date().valueOf();
-          passStream.started = true;
-        }
-      });
-
       this.pipeAudio(track, { start: 0 });
     }
     // If playing a midi file only
@@ -112,6 +114,10 @@ export class Console extends EventEmitter {
 
       this.midiPlayer.play({ loop: false });
     }
+  }
+
+  stopTrack() {
+    this.logger.error('Not implemented');
   }
 
   private pipeAudio(track: Track, options?: PlayOptions) {
@@ -132,15 +138,22 @@ export class Console extends EventEmitter {
           this.emitTrackEnd(track);
         });
 
-      this.passStream!.started = false;
-      this.passStream!.startTime = this.passStream!.currentTime;
+      const passStream = (this.passStream = new PassStream());
+
+      passStream.on('data', (d) => {
+        if (!passStream.started) {
+          this.io.emit(IOEvent.TrackStart, track.file);
+          if (this.midiPlayer) {
+            this.logger.debug('MIDI play started.');
+            this.midiPlayer.play({ loop: false });
+          }
+
+          passStream.started = true;
+        }
+      });
+
       this.audioStream.on('time', (timeData) => {
         this.io.emit(IOEvent.TrackTimeChange, timeData);
-        this.passStream!.currentTime = new Date().valueOf();
-
-        const timeElapsed =
-          (this.passStream!.currentTime - this.passStream!.startTime) / 1000;
-        // console.log({ time: timeData.time, timeElapsed });
       });
 
       this.audioFileStream.pipe(this.passStream!).pipe(this.audioStream);
@@ -152,50 +165,47 @@ export class Console extends EventEmitter {
       this.audioFileStream.pause();
       this.audioFileStream.unpipe();
       this.passStream!.unpipe();
+      this.audioStream?.destroy();
     }
 
     if (this.midiPlayer) {
-      this.midiPlayer.midiPlayer.stop();
+      this.midiPlayer.midiPlayer.pause();
     }
 
     this.io.emit(IOEvent.TrackPause);
+    this.logger.debug('Track paused.');
   }
 
-  resumeTrack() {
+  resumeTrack(time: number) {
     if (!this.currentTrack) {
+      this.logger.error(`Cannot resume - no current track`);
       return;
     }
 
-    // const currentTime = this.audioStream?.currentTime;
-    const startSeconds =
-      (this.passStream!.currentTime - this.passStream!.startTime) / 1000 +
-      this.passStream!.startSeconds;
-
-    //  console.log({ pausedTime: startSeconds });
-
-    this.passStream!.startSeconds = startSeconds;
-
-    if (startSeconds) {
-      this.midiPlayer!.midiPlayer.skipToSeconds(startSeconds);
-      this.pipeAudio(this.currentTrack, { start: startSeconds });
-      this.io.emit(IOEvent.TrackResume);
-    }
+    this.seekTrack(time);
   }
 
-  trackSeekListener = (time: number) => {
+  seekTrack(time: number) {
     this.logger.debug(`Seeking to ${time}`);
     if (!this.currentTrack) {
       return;
     }
 
-    this.pauseTrack();
+    if (this.midiPlayer) {
+      this.midiPlayer.seek(time);
 
-    setTimeout(() => {
-      this.midiPlayer!.midiPlayer.skipToSeconds(time);
-      this.pipeAudio(this.currentTrack!, { start: time });
+      if (!this.audioFile) {
+        this.midiPlayer.play();
+        this.io.emit(IOEvent.TrackResume);
+        return;
+      }
+    }
+
+    if (this.audioFile) {
+      this.pipeAudio(this.currentTrack!, { start: time + 0.3 });
       this.io.emit(IOEvent.TrackResume);
-    });
-  };
+    }
+  }
 
   emitTrackEnd(track: Track) {
     this.io.emit(IOEvent.TrackEnd, track);
@@ -205,5 +215,15 @@ export class Console extends EventEmitter {
 
   setDisabledNotes(disabledNotes: string[]) {
     this.disabledNotes = disabledNotes;
+  }
+
+  private clearCaches() {
+    this.midiPlayer?.stop();
+    this.midiPlayer = null;
+    this.audioFileStream = null;
+    this.audioStream = null;
+    this.audioFile = null;
+    this.midiFile = null;
+    this.passStream = null;
   }
 }

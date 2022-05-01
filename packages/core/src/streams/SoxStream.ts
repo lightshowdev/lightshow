@@ -17,6 +17,7 @@ export class SoxStream extends Writable {
   playOptions?: PlayOptions;
   currentTime: number = 0;
   duration: number = 0;
+
   meta: Record<string, string> = {};
 
   constructor({ path, options }: { path?: string; options?: PlayOptions }) {
@@ -49,6 +50,15 @@ export class SoxStream extends Writable {
     this.soxProcess.stderr?.on('data', (data) => {
       this.onSoxStdOut(data);
     });
+
+    this.soxProcess.stdout?.on(
+      'error',
+      (err: NodeJS.ErrnoException | null | undefined) => {
+        if (err?.code === 'EPIPE') {
+          return;
+        }
+      }
+    );
 
     callback();
   }
@@ -94,7 +104,6 @@ export class SoxStream extends Writable {
         }
       });
 
-      console.log(this.meta);
       if (this.meta.duration) {
         this.duration = convertTimeStringtoSeconds(this.meta.duration);
       }

@@ -100,7 +100,8 @@ export class TwilioController implements SMSController {
       return;
     }
 
-    console.playTrack({ track: songMatch, delay: 500 });
+    console.loadTrack({ track: songMatch });
+    console.playTrack(500);
 
     this.logger.debug({
       msg: `Playing ${songMatch.name}`,

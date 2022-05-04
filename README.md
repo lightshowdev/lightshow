@@ -26,8 +26,8 @@ yarn workspace @lightshow/server start
 
 1. Open the sample preview space @ http://localhost:3000/preview/space/demo-space?events=io.
 
-2. To play the sample track, open http://localhost:3000/play?track=Deck%20the%20Halls in another tab.
+2. To play the sample track, click the ▶️ icon in the upper right to view the listing and click the track.
 
 3. Watch the demo space do it's thing!
 
-![preview](assets/preview-space.gif)
+![preview](assets/demo.mov)

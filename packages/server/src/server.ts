@@ -88,6 +88,8 @@ const previewApp = new Preview();
   playlistRouter.prefix('/api');
   consoleRouter.prefix('/api');
 
+  const tracksServeHandler = serve(path.resolve(TRACKS_PATH));
+
   app
     .use(bodyParser())
     .use(async (ctx, next) => {
@@ -102,7 +104,18 @@ const previewApp = new Preview();
     })
     .use(playlistRouter.routes())
     .use(consoleRouter.routes())
-    .use(serve(path.resolve(TRACKS_PATH)))
+    .use(async (ctx, next) => {
+      if (ctx.path.startsWith('/audio')) {
+        ctx.path = ctx.path.replace('/audio', '');
+
+        // Set this for seeking in Chrome
+        ctx.set('Accept-Ranges', 'bytes');
+
+        await tracksServeHandler(ctx, next);
+        return;
+      }
+      await next();
+    })
     // this should be last
     .use(router.routes());
 

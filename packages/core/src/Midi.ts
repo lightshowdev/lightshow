@@ -116,7 +116,7 @@ export class Midi extends EventEmitter {
 
   loadFile({ file }: { file: string }) {
     this.midiPlayer.loadFile(file);
-    this.dimmerMap = this.calculateDimmerLengths();
+    this.calculateTempoDependencies();
   }
 
   play(options = { loop: false }) {
@@ -145,17 +145,15 @@ export class Midi extends EventEmitter {
     this.midiPlayer.setTempo(nearestTempoEvent!.tempo || 0);
   }
 
-  calculateDimmerLengths() {
+  calculateTempoDependencies() {
     const player = this.midiPlayer;
-    // @ts-ignore
+    const { tempo: projectTempo, division } = player;
 
-    const { tempo, division } = player;
-
-    fs.writeFileSync(
-      `${process.cwd()}/midi-dump.json`,
-      // @ts-ignore
-      JSON.stringify(player.events, null, 2)
-    );
+    // fs.writeFileSync(
+    //   `${process.cwd()}/midi-dump.json`,
+    //   // @ts-ignore
+    //   JSON.stringify(player.events, null, 2)
+    // );
 
     const midiEvents = player.getEvents() as unknown as MidiPlayer.Event[][];
 
@@ -169,7 +167,17 @@ export class Midi extends EventEmitter {
         };
       });
 
-    console.log(tempoEvents);
+    const [firstTempoEvent] = tempoEvents;
+    if (firstTempoEvent.tick > 0) {
+      tempoEvents.unshift({
+        name: 'Set Tempo',
+        tickMs: this.getTickMs(division, projectTempo),
+        tick: 0,
+        startTime: 0,
+        track: 1,
+        byteIndex: 0,
+      });
+    }
 
     tempoEvents.forEach((ev, index, events) => {
       if (index > 0) {
@@ -186,7 +194,7 @@ export class Midi extends EventEmitter {
       tempo: ev.data!,
     }));
 
-    console.log(JSON.stringify(this.timeRanges, null, 2));
+    // this.logger.debug(this.timeRanges);
 
     const tempoMap = [...tempoEvents].reverse();
 
@@ -245,7 +253,7 @@ export class Midi extends EventEmitter {
       alignedEvents.forEach((ae) => (ae.cancelled = true));
     });
 
-    return sortMap.filter((ev) => !ev.cancelled);
+    this.dimmerMap = sortMap.filter((ev) => !ev.cancelled);
   }
 
   public getTickMatchingTime(seconds: number) {
@@ -256,8 +264,6 @@ export class Midi extends EventEmitter {
     if (!startRange) {
       return 0;
     }
-
-    // console.log(startRange);
 
     const milliSecondsWithinRange = seconds * 1000 - startRange.time;
     const ticksWithinRange = Math.floor(
@@ -276,16 +282,7 @@ export class Midi extends EventEmitter {
     }
 
     const { time, tick, tempo } = startRange;
-
     return { time, tick, tempo };
-
-    // console.log(startRange);
-
-    // const milliSecondsWithinRange = seconds * 1000 - startRange.time;
-    // const ticksWithinRange = Math.round(
-    //   milliSecondsWithinRange / startRange.tickMs
-    // );
-    // return ticksWithinRange + startRange.tick;
   }
 
   private getTickMs(division: number, tempo: number) {

@@ -125,7 +125,7 @@ export const PlayerControls: React.FC<PlayerControlProps> = ({
       <audio
         ref={audioRef}
         // src={track && `/api/playlist/${track.name}/download`}
-        src={track && `/${track.file}.wav`}
+        src={track && `/audio/${track.file}.wav`}
       />
     </Stack>
   );

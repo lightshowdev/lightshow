@@ -3,6 +3,7 @@ import * as React from 'react';
 import { Box, Drawer, IconButton, Stack, Typography } from '@mui/material';
 
 import PlayCircleOutlineIcon from '@mui/icons-material/PlayCircleOutline';
+import LibraryMusicIcon from '@mui/icons-material/LibraryMusic';
 import GraphicEqIcon from '@mui/icons-material/GraphicEq';
 
 import type { Track } from '@lightshow/core';
@@ -37,14 +38,14 @@ export const Player: React.FC<PlayerProps> = ({
 
   return (
     <>
-      <Box sx={{ position: 'absolute', right: 40, top: 40 }}>
+      <Box sx={{ position: 'absolute', right: 50, top: 30 }}>
         <IconButton
           size="large"
           sx={{ color: 'white' }}
           aria-label="openplayer"
           onClick={() => setTogglePlayer(true)}
         >
-          <PlayCircleOutlineIcon />
+          <LibraryMusicIcon />
         </IconButton>
       </Box>
       <Drawer

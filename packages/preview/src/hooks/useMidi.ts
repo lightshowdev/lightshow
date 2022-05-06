@@ -1,13 +1,15 @@
 import * as React from 'react';
 import { dimmableNotes, Note } from '@lightshow/core/dist/Note';
 
-export const useMidi = (isMidi: boolean, elements: any[]) => {
+export const useMidi = (isMidi: boolean, space: any) => {
   React.useEffect(() => {
-    if (!isMidi) {
+    if (!isMidi || !space) {
       return;
     }
     // @ts-ignore
     window.navigator.requestMIDIAccess().then(onMIDISuccess, onMIDIFailure);
+
+    const elements = space.elements || [];
 
     function onMIDISuccess(midiAccess) {
       for (const input of midiAccess.inputs.values())
@@ -58,5 +60,5 @@ export const useMidi = (isMidi: boolean, elements: any[]) => {
     function onMIDIFailure() {
       console.log('Could not access your MIDI devices.');
     }
-  }, [isMidi, elements]);
+  }, [isMidi, space]);
 };

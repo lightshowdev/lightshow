@@ -3,14 +3,15 @@ import { IOEvent } from '@lightshow/core/dist/IOEvent';
 import { dimmableNotes } from '@lightshow/core/dist/Note';
 import { io } from 'socket.io-client';
 
-export const useIO = (isIO: boolean, elements: any[]) => {
+export const useIO = (isIO: boolean, space: any) => {
   const socketRef = React.useRef(io({}));
 
   React.useEffect(() => {
-    if (!isIO || !socketRef.current) {
+    if (!isIO || !socketRef.current || !space) {
       return;
     }
     const socket = socketRef.current;
+    const elements = space?.elements;
 
     socket
       .on(IOEvent.TrackStart, () => {
@@ -79,6 +80,6 @@ export const useIO = (isIO: boolean, elements: any[]) => {
           }
         });
       });
-  }, [isIO, elements, socketRef]);
+  }, [isIO, space, socketRef]);
   return socketRef.current;
 };

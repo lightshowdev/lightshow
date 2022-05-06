@@ -1,15 +1,22 @@
 import * as React from 'react';
 import { useRouter } from 'next/router';
+import dynamic from 'next/dynamic';
 import useSwr from 'swr';
 import { basePath } from '../../../next.config';
 import { useIO, useMidi } from '../../hooks';
 
 import { Space } from '../../components/Space';
+
 import { mapElements } from '../../helpers';
 import { Player } from '../../components/Player';
 import { SpacePicker } from '../../components/SpacePicker';
 
 import type { Track } from '@lightshow/core';
+
+// @ts-ignore
+const CanvasSpace = dynamic(() => import('../../components/CanvasSpace'), {
+  ssr: false,
+});
 
 const fetcher = (url) => fetch(url).then((res) => res.json());
 
@@ -74,7 +81,7 @@ export default function PreviewSpace() {
         activeSpace={activeSpace}
         spaces={spaces}
       />
-      <Space id={activeSpace?.id} elements={activeSpace?.elements} />
+      <CanvasSpace id={activeSpace?.id} elements={activeSpace?.elements} />
     </>
   );
 }

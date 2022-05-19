@@ -1,168 +1,126 @@
 import * as React from 'react';
-import { getShapeComponent } from '../helpers/getShapeComponent';
-import { logElements } from '../helpers/logElements';
-import { ElementWrapper } from './ElementWrapper';
-import isEqual from 'lodash.isequal';
-import clone from 'lodash.clone';
+import { Stage, Layer, Image, Transformer } from 'react-konva';
+import Konva from 'konva';
+import useImage from 'use-image';
+import { useIOCanvas } from '../hooks/useIOCanvas';
+import { useSpaceStorage } from '../hooks/useSpaceStorage';
 
-export const Space: React.FC<{
-  id: string;
-  elements: any[];
+const ShapeImage: React.FC<
+  Omit<Konva.ImageConfig, 'image'> & { src: string }
+> = ({ src, ...props }) => {
+  const [image] = useImage(src);
+
+  return <Image image={image} {...props} />;
+};
+
+const Space: React.FC<{
+  space: any;
   style?: React.CSSProperties;
-}> = ({ id, elements }) => {
-  const [customizedElements, setCustomizedElements] = React.useState<
-    any[] | null
-  >(null);
+}> = ({ space }) => {
+  const layerRef = React.useRef<Konva.Layer>();
+  const stageRef = React.useRef<Konva.Stage>();
+  const transRef = React.useRef<Konva.Transformer>();
 
-  const [initialized, setInitialized] = React.useState(false);
+  const { setElements, setLayer } = useIOCanvas(true);
+  const { spaceConfig, handleChange, initializeSpace } = useSpaceStorage();
 
   React.useEffect(() => {
-    if (id) {
-      const storedValue = window.localStorage.getItem(id);
-      if (storedValue) {
-        setCustomizedElements(JSON.parse(storedValue));
-      } else {
-        setCustomizedElements([]);
+    setElements(space.elements);
+    initializeSpace(space);
+  }, [space]);
+
+  React.useEffect(() => {
+    if (layerRef.current) {
+      setLayer(layerRef.current);
+    }
+  }, [layerRef.current, space.elements]);
+
+  React.useEffect(() => {
+    if (stageRef.current) {
+      const stageContainer = stageRef.current.container();
+      if (space.style) {
+        Object.entries(space.style).forEach(([key, value]) => {
+          stageContainer.style[key] = value;
+        });
       }
     }
-  }, [elements]);
+  }, [stageRef.current, space.style]);
 
-  React.useEffect(() => {
-    if (id && customizedElements.length) {
-      window.localStorage.setItem(id, JSON.stringify(customizedElements));
-    }
-  }, [customizedElements]);
-
-  React.useEffect(() => {
-    if (initialized) {
-      return;
-    }
-    if (!elements?.length || !customizedElements) {
-      return;
-    }
-
-    setInitialized(true);
-
-    const baseElements = elements.map(({ id, type, notes }) => ({
-      id,
-      type,
-      notes,
-    }));
-
-    const cachedBaseElements = customizedElements.map(
-      ({ id, type, notes }) => ({
-        id,
-        type,
-        notes,
-      })
-    );
-
-    if (!isEqual(baseElements, cachedBaseElements)) {
-      setCustomizedElements(elements);
-      return;
-    }
-
-    if (!isEqual(elements, customizedElements)) {
-      const mappedElements = elements.map((el) => {
-        const cachedEl = customizedElements.find((cel) => cel.id === el.id);
-        if (!cachedEl) {
-          return el;
-        }
-
-        const { x, y, width, height } = cachedEl;
-        return { ...el, x, y, width, height };
-      });
-
-      setCustomizedElements(mappedElements);
-    }
-  }, [elements, customizedElements, initialized]);
-
-  const handleDragStop = ({ x, y, id }) => {
-    const updatedElements = clone(customizedElements);
-    const el = updatedElements.find((el) => el.id === id);
-    if (el) {
-      el.x = x;
-      el.y = y;
-    }
-
-    setCustomizedElements(updatedElements);
-    logElements(updatedElements);
-  };
-
-  const handleResizeStop = ({ width, height, id }) => {
-    const updatedElements = clone(customizedElements);
-    const el = updatedElements.find((el) => el.id === id);
-    if (el) {
-      el.width = width;
-      el.height = height;
-    }
-
-    setCustomizedElements(updatedElements);
-  };
+  const onTransformClick = React.useCallback((e) => {
+    transRef.current.nodes([e.target]);
+    transRef.current.getLayer().batchDraw();
+  }, []);
 
   return (
-    <div
-      style={{
-        zIndex: -5,
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        overflow: 'auto',
+    <Stage
+      ref={stageRef}
+      draggable
+      width={window.innerWidth}
+      height={window.innerHeight}
+      onMouseDown={(e) => {
+        // deselect when clicked on empty area
+        const clickedOnEmpty = e.target === e.target.getStage();
+        if (clickedOnEmpty) {
+          transRef.current.nodes([]);
+          transRef.current.getLayer().batchDraw();
+        }
       }}
     >
-      <div
-        style={{
-          background: '#000',
-          backgroundSize: 'cover',
-          position: 'relative',
-          width: '100%',
-          minHeight: '100vh',
-        }}
-      >
-        {customizedElements?.length &&
-          customizedElements.map(
-            (
-              {
-                type,
-                channel,
-                box,
-                x = 0,
-                y = 0,
-                width,
-                height,
-                notes,
-                colors,
-              },
-              index
-            ) => {
-              const {
-                component,
-                defaults: { width: defaultWidth, height: defaultHeight },
-              } = getShapeComponent(type);
-
+      <Layer ref={layerRef}>
+        {spaceConfig?.elements?.length &&
+          spaceConfig.elements.map(
+            ({
+              type,
+              channel,
+              box,
+              x = 0,
+              y = 0,
+              rotation = 0,
+              width,
+              height,
+              src,
+              notes,
+              colors,
+            }) => {
+              const id = `${box}:${channel}`;
               return (
-                <ElementWrapper
+                <ShapeImage
                   key={`${box}:${channel}`}
-                  Element={component}
-                  type={type}
-                  size={{
-                    width: width || defaultWidth,
-                    height: height || defaultHeight,
-                  }}
-                  position={{ x, y }}
-                  colors={colors}
-                  dimmable={false}
-                  id={`${box}:${channel}`}
+                  name="element"
+                  width={width}
+                  height={height}
+                  x={x}
+                  y={y}
+                  rotation={rotation}
+                  src={src}
+                  draggable
+                  id={id}
                   label={notes.join(' ')}
-                  onDragStop={handleDragStop}
-                  onResizeStop={handleResizeStop}
+                  onClick={onTransformClick}
+                  onDragEnd={(e) => {
+                    handleChange('drag', e.target);
+                  }}
+                  onTransformEnd={(e) => {
+                    handleChange('transform', e.target);
+                  }}
                 />
               );
             }
           )}
-      </div>
-    </div>
+
+        <Transformer
+          ref={transRef}
+          boundBoxFunc={(oldBox, newBox) => {
+            // limit resize
+            if (newBox.width < 5 || newBox.height < 5) {
+              return oldBox;
+            }
+            return newBox;
+          }}
+        />
+      </Layer>
+    </Stage>
   );
 };
+
+export default Space;

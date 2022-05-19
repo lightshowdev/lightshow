@@ -108,10 +108,11 @@ export class Console extends EventEmitter {
     }
     // If playing a midi file only
     else if (this.midiPlayer) {
-      this.midiPlayer.once(MidiPlayerEvent.EndOfFile, () => {
+      this.midiPlayer.midiPlayer.on(MidiPlayerEvent.EndOfFile, () => {
         this.emitTrackEnd(track);
       });
 
+      this.io.emit(IOEvent.TrackStart, track.file);
       this.midiPlayer.play({ loop: false });
     }
   }

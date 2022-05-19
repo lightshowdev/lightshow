@@ -70,8 +70,10 @@ export const useIOPlayerEvents = ({
     }
 
     if (time === 0) {
-      socketRef.current.emit(IOEvent.TrackPlay);
-      audioRef.current.play();
+      setTimeout(() => {
+        socketRef.current.emit(IOEvent.TrackPlay);
+        audioRef.current.play();
+      }, 300);
     } else {
       audioRef.current.addEventListener(
         'playing',

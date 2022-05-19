@@ -15,8 +15,11 @@ import SMSConroller, { SMSConfig } from '@lightshow/sms';
 
 import { playlistRouter, consoleRouter } from './routes';
 
-const { SMS_PROVIDER = 'none', TRACKS_PATH = '../../config/tracks' } =
-  process.env;
+const {
+  SMS_PROVIDER = 'none',
+  TRACKS_PATH = '../../config/tracks',
+  ELEMENTS_PATH = '../../config/elements',
+} = process.env;
 
 const previewApp = new Preview();
 
@@ -89,6 +92,7 @@ const previewApp = new Preview();
   consoleRouter.prefix('/api');
 
   const tracksServeHandler = serve(path.resolve(TRACKS_PATH));
+  const elementsServeHandler = serve(path.resolve(ELEMENTS_PATH));
 
   app
     .use(bodyParser())
@@ -112,6 +116,12 @@ const previewApp = new Preview();
         ctx.set('Accept-Ranges', 'bytes');
 
         await tracksServeHandler(ctx, next);
+        return;
+      }
+      if (ctx.path.startsWith('/elements')) {
+        ctx.path = ctx.path.replace('/elements', '');
+
+        await elementsServeHandler(ctx, next);
         return;
       }
       await next();

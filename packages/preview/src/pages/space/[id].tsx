@@ -5,8 +5,6 @@ import useSwr from 'swr';
 import { basePath } from '../../../next.config';
 import { useIO, useMidi } from '../../hooks';
 
-import { Space } from '../../components/Space';
-
 import { mapElements } from '../../helpers';
 import { Player } from '../../components/Player';
 import { SpacePicker } from '../../components/SpacePicker';
@@ -14,7 +12,7 @@ import { SpacePicker } from '../../components/SpacePicker';
 import type { Track } from '@lightshow/core';
 
 // @ts-ignore
-const CanvasSpace = dynamic(() => import('../../components/CanvasSpace'), {
+const Space = dynamic(() => import('../../components/Space'), {
   ssr: false,
 });
 
@@ -40,8 +38,8 @@ export default function PreviewSpace() {
     (Track & { paused: boolean }) | null
   >(null);
 
-  useMidi(router.query.events === 'midi', activeSpace);
-  useIO(router.query.events === 'io', activeSpace);
+  // useMidi(router.query.events === 'midi', activeSpace);
+  // useIOCanvas(router.query.events === 'io', activeSpace);
 
   React.useEffect(() => {
     const spaceMatch = spaces?.find((s) => s.id === spaceId);
@@ -71,6 +69,7 @@ export default function PreviewSpace() {
 
   return (
     <>
+      {activeSpace && <Space space={activeSpace} />}
       <Player
         tracks={tracks}
         activeTrack={activeTrack}
@@ -81,7 +80,6 @@ export default function PreviewSpace() {
         activeSpace={activeSpace}
         spaces={spaces}
       />
-      <CanvasSpace id={activeSpace?.id} elements={activeSpace?.elements} />
     </>
   );
 }

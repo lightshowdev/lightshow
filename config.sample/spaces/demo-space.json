@@ -1,33 +1,34 @@
 {
+  "name": "Demo Space",
+  "id": "demo-space",
+  "background": "#111",
   "boxes": [
     {
-      "id": "dimmer-pi",
+      "id": "box1",
       "channels": 8,
       "notes": [["*5"]],
       "dimmableNotes": ["*5"],
       "elements": [
         {
-          "type": "tree",
+          "src": "/elements/demo-space/tree.svg",
           "channel": 1,
           "x": 600,
-          "y": 290,
-          "width": 109,
-          "height": 126
+          "y": 290
         },
         {
-          "type": "tree",
+          "src": "/elements/demo-space/tree.svg",
           "channel": 2,
           "x": 796,
           "y": 442
         },
         {
-          "type": "tree",
+          "src": "/elements/demo-space/tree.svg",
           "channel": 3,
           "x": 718,
           "y": 32
         },
         {
-          "type": "tree",
+          "src": "/elements/demo-space/tree.svg",
           "channel": 4,
           "x": 63,
           "y": 133,
@@ -35,25 +36,25 @@
           "height": 173
         },
         {
-          "type": "candycane",
+          "src": "/elements/demo-space/candycane.svg",
           "channel": 5,
           "x": 379,
           "y": 426
         },
         {
-          "type": "candycane",
+          "src": "/elements/demo-space/candycane.svg",
           "channel": 6,
           "x": 614,
           "y": 480
         },
         {
-          "type": "candycane",
+          "src": "/elements/demo-space/candycane.svg",
           "channel": 7,
           "x": 953,
           "y": 209
         },
         {
-          "type": "candycane",
+          "src": "/elements/demo-space/candycane.svg",
           "channel": 8,
           "x": 434,
           "y": 84,
@@ -63,56 +64,54 @@
       ]
     },
     {
-      "id": "gpio-pi",
+      "id": "box2",
       "channels": 8,
       "notes": [["*2"], ["*4"]],
       "elements": [
         {
-          "type": "bush",
+          "src": "/elements/demo-space/christmastree.svg",
           "channel": 1,
           "x": 1024,
           "y": 41
         },
         {
-          "type": "bush",
+          "src": "/elements/demo-space/christmastree.svg",
           "channel": 2,
           "x": 764,
           "y": 206
         },
         {
-          "type": "bush",
+          "src": "/elements/demo-space/christmastree.svg",
           "channel": 3,
           "x": 1001,
           "y": 303
         },
         {
-          "type": "bush",
+          "src": "/elements/demo-space/christmastree.svg",
           "channel": 4,
           "x": 1127,
-          "y": 442,
-          "width": 166,
-          "height": 142
+          "y": 442
         },
         {
-          "type": "christmastree",
+          "src": "/elements/demo-space/bush.svg",
           "channel": 5,
           "x": 212,
           "y": 320
         },
         {
-          "type": "christmastree",
+          "src": "/elements/demo-space/bush.svg",
           "channel": 6,
           "x": 362,
           "y": 202
         },
         {
-          "type": "christmastree",
+          "src": "/elements/demo-space/bush.svg",
           "channel": 7,
           "x": 1157,
           "y": 197
         },
         {
-          "type": "christmastree",
+          "src": "/elements/demo-space/bush.svg",
           "channel": 8,
           "x": 561,
           "y": 95

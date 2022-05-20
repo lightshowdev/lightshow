@@ -7,7 +7,11 @@
 
 ![lightshow](assets/demo.gif)
 
-## Getting Started
+## Prerequisites
+
+[Node.js](https://nodejs.org/en/), [Yarn (classic)](https://classic.yarnpkg.com/lang/en/), and [SoX](https://github.com/chirlu/sox).
+
+## Setup
 
 ```bash
 # Install dependencies
@@ -31,4 +35,3 @@ yarn workspace @lightshow/server start
 3. Watch the demo space do it's thing!
 
 https://user-images.githubusercontent.com/1138977/166842183-57cc2f4c-6014-421e-90fc-7edd84f323cd.mov
-

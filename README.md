@@ -1,7 +1,6 @@
 <p align=center>
-    <img src="assets/logo.svg" alt="lightshow" width=50 height=50 />
+    <img src="assets/ls-small.svg" alt="Lightshow.js" width=300 />
 </p>
- <h2 align="center">lightshow</h2>
 
 <p align="center">Control lights and music for Raspberry Pi and more.</p>
 

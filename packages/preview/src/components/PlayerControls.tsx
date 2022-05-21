@@ -122,11 +122,7 @@ export const PlayerControls: React.FC<PlayerControlProps> = ({
         />
         <Typography ref={durationRef} />
       </Stack>
-      <audio
-        ref={audioRef}
-        // src={track && `/api/playlist/${track.name}/download`}
-        src={track && `/audio/${track.file}.wav`}
-      />
+      <audio ref={audioRef} src={track && `/audio/${track.audio}`} />
     </Stack>
   );
 };

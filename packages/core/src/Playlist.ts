@@ -1,6 +1,6 @@
 const { LAST_PLAY_RANGE = '0', FREQUENCY, BAND = 'FM' } = process.env;
 import * as fs from 'fs';
-import { resolve } from 'path';
+import { resolve, basename } from 'path';
 
 const lastPlayRangeMS = parseInt(LAST_PLAY_RANGE) * 1000;
 
@@ -12,6 +12,8 @@ export interface Track {
   noteMappings?: {
     [deviceName: string]: string;
   };
+  audio?: string;
+  midi?: string;
 }
 
 type TrackLog = {
@@ -40,7 +42,19 @@ export class Playlist {
       throw new Error(`Playlist file not found: ${playlistPath}`);
     }
     this.tracks = require(playlistPath) as Track[];
-    this.tracks = this.tracks.filter((t) => !t.disabled);
+    this.tracks = this.tracks
+      .filter((t) => !t.disabled)
+      .map((t) => {
+        const midiPath = this.getFilePath(t, 'midi');
+        const audioPath = this.getFilePath(t, 'audio');
+        if (midiPath) {
+          t.midi = basename(midiPath);
+        }
+        if (audioPath) {
+          t.audio = basename(audioPath);
+        }
+        return t;
+      });
   }
 
   getTrack(trackName: string) {
@@ -121,14 +135,16 @@ export class Playlist {
 
     let filePath;
     if (type === 'audio') {
-      filePath = `${basePath}.wav`;
-      if (fs.existsSync(filePath)) {
-        return filePath;
-      }
       filePath = `${basePath}.mp3`;
       if (fs.existsSync(filePath)) {
         return filePath;
       }
+
+      filePath = `${basePath}.wav`;
+      if (fs.existsSync(filePath)) {
+        return filePath;
+      }
+
       return;
     }
 

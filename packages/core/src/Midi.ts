@@ -1,11 +1,11 @@
 import MidiPlayer from 'midi-player-js';
 
 import { sortBy } from 'lodash';
-import EventEmitter from 'events';
-import { Server as SocketIOServer } from 'socket.io';
-import { Logger, IOEvent, dimmableRange } from './';
-import fs from 'fs';
-import { start } from 'repl';
+
+import type { Server as SocketIOServer } from 'socket.io';
+import { IOEvent } from './IOEvent';
+import { Logger } from './Logger';
+import { dimmableRange } from './Note';
 
 export enum MidiPlayerEvent {
   FileLoaded = 'fileLoaded',
@@ -24,8 +24,11 @@ interface DimmerEvent extends MidiPlayer.Event {
   sameNotes?: string[];
 }
 
-export class Midi extends EventEmitter {
-  public io: SocketIOServer;
+export class Midi {
+  public io:
+    | SocketIOServer
+    | { emit: (ioEvent: IOEvent, ...payload: any[]) => void };
+
   public midiPlayer: MidiPlayer.Player;
   public disabledNotes: string[] = [];
   public dimmerMap: any[] = [];
@@ -37,17 +40,19 @@ export class Midi extends EventEmitter {
     tempo: number;
   }[] = [];
 
+  private callbackList: { [ev: string]: (() => any)[] } = {};
+
   constructor({
     io,
     logger,
     disabledNotes,
   }: {
-    io: SocketIOServer;
+    io:
+      | SocketIOServer
+      | { emit: (ioEvent: IOEvent, ...payload: any[]) => void };
     logger: Logger;
     disabledNotes?: string[];
   }) {
-    super();
-
     this.io = io;
     this.midiPlayer = new MidiPlayer.Player();
     if (Array.isArray(disabledNotes)) {
@@ -119,6 +124,11 @@ export class Midi extends EventEmitter {
     this.calculateTempoDependencies();
   }
 
+  loadDataUri(dataUri: string) {
+    this.midiPlayer.loadDataUri(dataUri);
+    this.calculateTempoDependencies();
+  }
+
   play(options = { loop: false }) {
     this.midiPlayer.play();
     if (options.loop) {
@@ -132,6 +142,10 @@ export class Midi extends EventEmitter {
 
   stop() {
     this.midiPlayer.stop();
+  }
+
+  isPlaying() {
+    return this.midiPlayer.isPlaying();
   }
 
   seek(time: number) {
@@ -148,12 +162,6 @@ export class Midi extends EventEmitter {
   calculateTempoDependencies() {
     const player = this.midiPlayer;
     const { tempo: projectTempo, division } = player;
-
-    // fs.writeFileSync(
-    //   `${process.cwd()}/midi-dump.json`,
-    //   // @ts-ignore
-    //   JSON.stringify(player.events, null, 2)
-    // );
 
     const midiEvents = player.getEvents() as unknown as MidiPlayer.Event[][];
 
@@ -287,5 +295,18 @@ export class Midi extends EventEmitter {
 
   private getTickMs(division: number, tempo: number) {
     return 60000 / (tempo * division);
+  }
+
+  // Custom isomorphic implementation of event emitter
+  on(eventName: string, callback: () => any) {
+    const callbacks = this.callbackList[eventName] ?? [];
+    callbacks.push(callback);
+    this.callbackList[eventName] = callbacks;
+  }
+
+  emit(eventName: string, ...args: []) {
+    this.callbackList[eventName]?.forEach((callback) => {
+      callback(...args);
+    });
   }
 }

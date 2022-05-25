@@ -14,6 +14,7 @@ export interface Track {
   };
   audio?: string;
   midi?: string;
+  midiEncoded?: string;
 }
 
 type TrackLog = {
@@ -41,6 +42,9 @@ export class Playlist {
     if (!fs.existsSync(playlistPath)) {
       throw new Error(`Playlist file not found: ${playlistPath}`);
     }
+
+    const baseFolder = basename(this.path);
+
     this.tracks = require(playlistPath) as Track[];
     this.tracks = this.tracks
       .filter((t) => !t.disabled)
@@ -48,10 +52,10 @@ export class Playlist {
         const midiPath = this.getFilePath(t, 'midi');
         const audioPath = this.getFilePath(t, 'audio');
         if (midiPath) {
-          t.midi = basename(midiPath);
+          t.midi = midiPath.split(`${baseFolder}/`)[1];
         }
         if (audioPath) {
-          t.audio = basename(audioPath);
+          t.audio = audioPath.split(`${baseFolder}/`)[1];
         }
         return t;
       });

@@ -1,20 +1,26 @@
 {
   "name": "@lightshow/core",
-  "version": "1.0.0",
-  "description": "Core types",
+  "version": "1.0.0-3",
+  "description": "Lightshow.js core library",
   "main": "dist/index.js",
-  "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lightshowjs/lightshow",
+    "directory": "packages/core"
+  },
+  "license": "MIT",
   "scripts": {
-    "postinstall": "if [[ \"$OSTYPE\" == \"darwin\"* ]]; then npm install --no-save speaker --mpg123-backend=openal; fi",
-    "dev": "ts-node-dev -r dotenv/config --files ./src/index.ts",
-    "start": "node -r dotenv/config ./dist",
     "build": "rm -rf ./dist && tsc --project ./tsconfig.json"
   },
   "dependencies": {
-    "dotenv": "^10.0.0",
+    "lodash": "^4.17.21",
     "midi-player-js": "^2.0.13",
     "socket.io": "^3.0.4",
-    "speaker": "^0.5.3"
+    "socket.io-client": "^4.5.1"
+  },
+  "peerDependencies": {
+    "react": "^18.1.0",
+    "konva": "^8.3.8"
   },
   "devDependencies": {
     "@types/lodash": "^4.14.178"

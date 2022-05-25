@@ -33,7 +33,7 @@ export class SoxStream extends Writable {
   }
 
   _construct(callback: Function) {
-    const trimArgs = [];
+    const trimArgs: string[] = [];
     if (this.playOptions?.start || this.playOptions?.end) {
       trimArgs.push('trim');
       this.currentTime = this.playOptions.start || 0;

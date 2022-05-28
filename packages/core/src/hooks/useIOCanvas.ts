@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { IOEvent } from '../IOEvent';
-import { dimmableNotes } from '../Note';
+
 import { io } from 'socket.io-client';
 import type Konva from 'konva';
 import type { Element } from '../Space';
@@ -9,8 +9,11 @@ let socketClient;
 
 export const useIOCanvas = (isIO: boolean, clientOverride?: any) => {
   const [elements, setElements] = React.useState<Element[]>([]);
+
+  // Dictionary for fast access
   const elementCache = React.useRef({});
 
+  // Cache the layer containing all the canvas nodes
   const [layer, setLayer] = React.useState<Konva.Layer | null>(null);
 
   React.useEffect(() => {
@@ -50,9 +53,9 @@ export const useIOCanvas = (isIO: boolean, clientOverride?: any) => {
           el.notes.some((n) => notes.includes(n))
         );
 
-        const isDimmable = dimmableNotes.includes(note);
-
         if (noteEls?.length) {
+          const isDimmable = noteEls[0].dimmableNotes?.includes(note);
+
           noteEls.forEach((el) => {
             const canvasEl = elementCache.current[el.id];
 
@@ -67,7 +70,6 @@ export const useIOCanvas = (isIO: boolean, clientOverride?: any) => {
       .on(IOEvent.NoteOff, (note) => {
         const noteEls = elements.filter((el) => el.notes.includes(note));
 
-        const isDimmable = dimmableNotes.includes(note);
         noteEls?.forEach((el) => {
           const canvasEl = elementCache.current[el.id];
           canvasEl?.to({

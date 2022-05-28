@@ -1,7 +1,9 @@
 import * as React from 'react';
 
 import { Stack, Typography, Slider, IconButton, Tooltip } from '@mui/material';
-import { useIOPlayerEvents, getTimeString } from '../hooks/useIOPlayerEvents';
+import { useIOPlayerEvents } from '@lightshow/core/dist/hooks';
+
+import { getTimeString } from '@lightshow/core/dist/helpers';
 
 import type { Track } from '@lightshow/core';
 

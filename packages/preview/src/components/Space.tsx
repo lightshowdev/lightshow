@@ -2,8 +2,7 @@ import * as React from 'react';
 import { Stage, Layer, Image, Transformer } from 'react-konva';
 import Konva from 'konva';
 import useImage from 'use-image';
-import { useIOCanvas } from '../hooks/useIOCanvas';
-import { useSpaceStorage } from '../hooks/useSpaceStorage';
+import { useIOCanvas, useSpaceStorage } from '@lightshow/core/dist/hooks';
 
 const ShapeImage: React.FC<
   Omit<Konva.ImageConfig, 'image'> & { src: string }
@@ -80,7 +79,6 @@ const Space: React.FC<{
               height,
               src,
               notes,
-              colors,
             }) => {
               const id = `${box}:${channel}`;
               return (

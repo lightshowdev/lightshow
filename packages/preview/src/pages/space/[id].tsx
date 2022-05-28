@@ -3,9 +3,8 @@ import { useRouter } from 'next/router';
 import dynamic from 'next/dynamic';
 import useSwr from 'swr';
 import { basePath } from '../../../next.config';
-import { useIO, useMidi } from '../../hooks';
 
-import { mapElements } from '../../helpers';
+import { mapElements } from '@lightshow/core/dist/helpers';
 import { Player } from '../../components/Player';
 import { SpacePicker } from '../../components/SpacePicker';
 
@@ -38,13 +37,11 @@ export default function PreviewSpace() {
     (Track & { paused: boolean }) | null
   >(null);
 
-  // useMidi(router.query.events === 'midi', activeSpace);
-  // useIOCanvas(router.query.events === 'io', activeSpace);
-
   React.useEffect(() => {
     const spaceMatch = spaces?.find((s) => s.id === spaceId);
     if (spaceMatch) {
       spaceMatch.elements = mapElements(spaceMatch);
+      console.log(spaceMatch.elements);
       setActiveSpace(spaceMatch);
     }
   }, [spaceId, spaces]);

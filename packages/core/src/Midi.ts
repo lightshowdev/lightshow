@@ -97,7 +97,7 @@ export class Midi {
               io.emit(
                 IOEvent.NoteOn,
                 noteName,
-                velocity,
+                noteNumber,
                 computedLengthEvent.length,
                 computedLengthEvent.sameNotes,
                 // auto off (for dimmer notes)
@@ -106,10 +106,10 @@ export class Midi {
               return;
             }
 
-            io.emit(IOEvent.NoteOn, noteName, velocity);
+            io.emit(IOEvent.NoteOn, noteName, noteNumber);
           }
           if (name === MidiEvent.NoteOff) {
-            io.emit(IOEvent.NoteOff, noteName);
+            io.emit(IOEvent.NoteOff, noteName, noteNumber);
           }
         }
       )

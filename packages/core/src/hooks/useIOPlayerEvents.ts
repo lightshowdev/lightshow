@@ -71,24 +71,36 @@ export const useIOPlayerEvents = ({
       return;
     }
 
-    if (time === 0) {
-      setTimeout(() => {
-        socketRef.current.emit(IOEvent.TrackPlay);
-        audioRef.current.play();
-      }, 300);
-    } else {
-      audioRef.current.addEventListener(
-        'playing',
-        () => {
-          socketRef.current.emit(
-            IOEvent.TrackSeek,
-            audioRef.current.currentTime
-          );
-        },
-        { once: true }
-      );
-      audioRef.current.play();
-    }
+    // if (time === 0) {
+    //   setTimeout(() => {
+    //     socketRef.current.emit(IOEvent.TrackPlay);
+    //     audioRef.current.play();
+    //   }, 300);
+    // } else {
+    audioRef.current.addEventListener(
+      'playing',
+      () => {
+        const currentTime = audioRef.current.currentTime;
+
+        socketRef.current.emit(
+          currentTime === 0 ? IOEvent.TrackPlay : IOEvent.TrackSeek,
+          currentTime
+        );
+
+        // Recalibrate for buffering
+        if (currentTime === 0) {
+          setTimeout(() => {
+            socketRef.current.emit(
+              IOEvent.TrackSeek,
+              audioRef.current.currentTime
+            );
+          }, 300);
+        }
+      },
+      { once: true }
+    );
+    audioRef.current.play();
+    // }
   };
 
   React.useEffect(() => {

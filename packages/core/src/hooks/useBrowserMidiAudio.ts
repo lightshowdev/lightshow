@@ -68,11 +68,19 @@ export const useBrowserMidiAudio = ({
     audioRef.current.addEventListener(
       'playing',
       () => {
-        if (audioRef.current.paused) {
-          return;
-        }
-        midiPlayer.seek(audioRef.current.currentTime);
+        const currentTime = audioRef.current.currentTime;
+        midiPlayer.seek(currentTime);
         midiPlayer.play();
+
+        // Recalibrate for buffering
+        if (currentTime === 0) {
+          setTimeout(() => {
+            midiPlayer.seek(audioRef.current.currentTime);
+            if (!midiPlayer.isPlaying()) {
+              midiPlayer.play();
+            }
+          }, 1000);
+        }
       },
       { once: true }
     );
@@ -87,23 +95,32 @@ export const useBrowserMidiAudio = ({
 
   const handleResume = () => {
     if (time === 0) {
-      setTimeout(() => {
-        io.emit(IOEvent.TrackStart);
+      io.emit(IOEvent.TrackStart);
+    }
+
+    audioRef.current.addEventListener(
+      'playing',
+      () => {
+        const currentTime = audioRef.current.currentTime;
+
+        midiPlayer.seek(currentTime);
         if (!midiPlayer.isPlaying()) {
           midiPlayer.play();
         }
-        audioRef.current.play();
-      }, 300);
-    } else {
-      audioRef.current.addEventListener(
-        'playing',
-        () => {
-          midiPlayer.seek(time);
-        },
-        { once: true }
-      );
-      audioRef.current.play();
-    }
+
+        // Recalibrate for buffering
+        if (currentTime === 0) {
+          setTimeout(() => {
+            midiPlayer.seek(audioRef.current.currentTime);
+            if (!midiPlayer.isPlaying()) {
+              midiPlayer.play();
+            }
+          }, 300);
+        }
+      },
+      { once: true }
+    );
+    audioRef.current.play();
   };
 
   React.useEffect(() => {

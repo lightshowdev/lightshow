@@ -7,7 +7,7 @@
       "id": "box1",
       "channels": 8,
       "notes": [["*5"]],
-      "dimmableNotes": ["*5"],
+      "dimmableNotes": [["*5"]],
       "elements": [
         {
           "src": "/elements/demo-space/tree.svg",

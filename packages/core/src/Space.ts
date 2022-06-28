@@ -11,6 +11,8 @@ export interface Element {
   height?: number;
   src?: string;
   box?: string;
+  limit?: number;
+  offset?: number;
   isDimmable?: boolean;
 }
 

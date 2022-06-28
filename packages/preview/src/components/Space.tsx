@@ -78,12 +78,46 @@ const Space: React.FC<{
               width,
               height,
               src,
+              offset,
+              limit,
               notes,
             }) => {
+              if (src.includes('*')) {
+                const pagedItems = new Array(limit)
+                  .fill(0)
+                  .map((_, i) => i + offset);
+                return pagedItems.map((itemNumber) => {
+                  const id = `${box}:${channel}:${itemNumber}`;
+
+                  return (
+                    <ShapeImage
+                      key={id}
+                      name="element"
+                      width={width}
+                      height={height}
+                      x={x}
+                      y={y}
+                      rotation={rotation}
+                      src={src.replace('*', itemNumber)}
+                      draggable
+                      id={id}
+                      label={notes.join(' ')}
+                      onClick={onTransformClick}
+                      onDragEnd={(e) => {
+                        handleChange('drag', e.target);
+                      }}
+                      onTransformEnd={(e) => {
+                        handleChange('transform', e.target);
+                      }}
+                    />
+                  );
+                });
+              }
+
               const id = `${box}:${channel}`;
               return (
                 <ShapeImage
-                  key={`${box}:${channel}`}
+                  key={id}
                   name="element"
                   width={width}
                   height={height}

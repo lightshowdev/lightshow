@@ -1,15 +1,17 @@
-const noteLetters = ['C', 'D', 'E', 'F', 'G', 'A', 'Bb', 'B'];
+const DEFAULT_NOTES = ['C', 'D', 'E', 'F', 'G', 'A', 'Bb', 'B'];
 import type { Space } from '../Space';
 
 /**
  * Get a flattened map of elements with notes
  */
 export function mapElements(spaceConfig: Space) {
+  const noteLetters = spaceConfig.baseNotes || DEFAULT_NOTES;
+
   if (!spaceConfig.boxes) {
     return [];
   }
 
-  return spaceConfig.boxes
+  const mappedElements = spaceConfig.boxes
     .map((b) => {
       const channels = [...new Array(b.channels)].map(
         (_, index) =>
@@ -57,4 +59,6 @@ export function mapElements(spaceConfig: Space) {
     })
     .flat()
     .filter((el) => el);
+
+  return mappedElements;
 }

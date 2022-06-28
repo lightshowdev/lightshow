@@ -19,6 +19,7 @@ const {
   SMS_PROVIDER = 'none',
   TRACKS_PATH = '../../config/tracks',
   ELEMENTS_PATH = '../../config/elements',
+  PORT = '3000',
 } = process.env;
 
 const previewApp = new Preview();
@@ -98,6 +99,10 @@ const previewApp = new Preview();
     .use(bodyParser())
     .use(async (ctx, next) => {
       ctx.res.statusCode = 200;
+      if (ctx.path === '/') {
+        ctx.body = 'Welcome to @lightshow';
+        return;
+      }
       await next();
     })
     .use(async (ctx, next) => {
@@ -129,6 +134,6 @@ const previewApp = new Preview();
     // this should be last
     .use(router.routes());
 
-  await server.listen(3000, '0.0.0.0');
+  await server.listen(Number(PORT));
   console.log('Service started');
 })();

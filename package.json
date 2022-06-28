@@ -9,7 +9,8 @@
   "license": "MIT",
   "scripts": {
     "config:copy": "cp -r config.sample config",
-    "build:all": "./scripts/build-all.sh",
+    "build": "yarn config:copy && ./scripts/build-all.sh",
+    "start": "yarn workspace @lightshow/server start",
     "dev": "yarn workspace @lightshow/server dev"
   },
   "devDependencies": {

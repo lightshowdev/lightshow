@@ -88,6 +88,7 @@ const Space: React.FC<{
                   .map((_, i) => i + offset);
                 return pagedItems.map((itemNumber) => {
                   const id = `${box}:${channel}:${itemNumber}`;
+                  const itemSrc = src.replace('*', itemNumber.toString());
 
                   return (
                     <ShapeImage
@@ -98,7 +99,7 @@ const Space: React.FC<{
                       x={x}
                       y={y}
                       rotation={rotation}
-                      src={src.replace('*', itemNumber)}
+                      src={itemSrc}
                       draggable
                       id={id}
                       label={notes.join(' ')}

@@ -9,7 +9,6 @@ import PlayCircleFilledIcon from '@mui/icons-material/PlayCircleFilled';
 import PauseCircleFilledIcon from '@mui/icons-material/PauseCircleFilled';
 import FastRewindIcon from '@mui/icons-material/FastRewind';
 import FastForwardIcon from '@mui/icons-material/FastForward';
-
 interface PlayerControlProps {
   track?: Track;
   onChange?: (
@@ -32,7 +31,6 @@ export const PlayerControls: React.FC<PlayerControlProps> = ({
     handlers,
   } = useIOPlayerEvents({
     track,
-    sliderRef,
     timeRef,
     durationRef,
     audioRef,

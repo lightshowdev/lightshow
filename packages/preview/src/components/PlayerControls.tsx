@@ -1,7 +1,14 @@
 import * as React from 'react';
 
-import { Stack, Typography, Slider, IconButton, Tooltip } from '@mui/material';
-import { useIOPlayerEvents } from '@lightshow/core/dist/hooks';
+import {
+  Stack,
+  Typography,
+  Slider,
+  IconButton,
+  Tooltip,
+  Snackbar,
+} from '@mui/material';
+import { useBrowserMidiAudio } from '@lightshow/core/dist/hooks';
 import { getTimeString } from '@lightshow/core/dist/helpers';
 import type { Track } from '@lightshow/core';
 
@@ -27,7 +34,7 @@ export const PlayerControls: React.FC<PlayerControlProps> = ({
   const audioRef = React.useRef<HTMLAudioElement | null>(null);
 
   const {
-    values: { time, duration, percentage },
+    values: { time, duration, percentage, trackLoaded },
     handlers,
   } = useIOPlayerEvents({
     track,
@@ -35,6 +42,16 @@ export const PlayerControls: React.FC<PlayerControlProps> = ({
     durationRef,
     audioRef,
   });
+
+  // const {
+  //   values: { time, duration, percentage, trackLoaded },
+  //   handlers,
+  // } = useBrowserMidiAudio({
+  //   track,
+  //   timeRef,
+  //   durationRef,
+  //   audioRef,
+  // });
 
   const [seekPercentage, setSeekPercentage] = React.useState(percentage);
   const [seekChangePercentage, setSeekChangePercentage] = React.useState<
@@ -72,6 +89,10 @@ export const PlayerControls: React.FC<PlayerControlProps> = ({
       audioRef.current.addEventListener('pause', () => {
         setIsPlaying(false);
       });
+
+      audioRef.current.addEventListener('ended', () => {
+        setIsPlaying(false);
+      });
     }
   }, [audioRef]);
 
@@ -94,7 +115,7 @@ export const PlayerControls: React.FC<PlayerControlProps> = ({
         sx={{ p: 2 }}
       >
         <FastRewindIcon />
-        <IconButton onClick={handlePlayPauseClick}>
+        <IconButton onClickCapture={handlePlayPauseClick}>
           {!isPlaying ? <PlayCircleFilledIcon /> : <PauseCircleFilledIcon />}
         </IconButton>
         <FastForwardIcon />
@@ -120,7 +141,15 @@ export const PlayerControls: React.FC<PlayerControlProps> = ({
         />
         <Typography ref={durationRef} />
       </Stack>
-      <audio ref={audioRef} src={track && `/audio/${track.audio}`} />
+      <audio
+        ref={audioRef}
+        playsInline={true}
+        src={track && `/audio/${track.audio}`}
+      />
+      <Snackbar
+        open={trackLoaded}
+        message="Track loaded. Press the play button"
+      />
     </Stack>
   );
 };

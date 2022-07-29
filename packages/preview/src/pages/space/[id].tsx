@@ -9,7 +9,7 @@ import { Player } from '../../components/Player';
 import { SpacePicker } from '../../components/SpacePicker';
 
 import type { Track } from '@lightshow/core';
-
+import { scaleElements } from '../../helpers/scaleElements';
 // @ts-ignore
 const Space = dynamic(() => import('../../components/Space'), {
   ssr: false,
@@ -21,6 +21,7 @@ export default function PreviewSpace() {
   const router = useRouter();
 
   const spaceId = router.query.id as string;
+  const editable = !!router.query.editable;
 
   // Fetch space
   const { data: spaces = [], error: fetchSpaceError } = useSwr(
@@ -32,6 +33,7 @@ export default function PreviewSpace() {
   const { data: tracks = [], error } = useSwr('/api/playlist', fetcher);
 
   const [activeSpace, setActiveSpace] = React.useState<any | null>(null);
+  const [controlsVisible, setControlsVisible] = React.useState(false);
 
   const [activeTrack, setActiveTrack] = React.useState<
     (Track & { paused: boolean }) | null
@@ -40,14 +42,18 @@ export default function PreviewSpace() {
   React.useEffect(() => {
     const spaceMatch = spaces?.find((s) => s.id === spaceId);
     if (spaceMatch) {
-      spaceMatch.elements = mapElements(spaceMatch);
-      console.log(spaceMatch.elements);
+      if (!spaceMatch.elements) {
+        spaceMatch.elements = mapElements(spaceMatch);
+      }
+
+      scaleElements(spaceMatch, window.innerWidth, window.innerHeight);
       setActiveSpace(spaceMatch);
     }
   }, [spaceId, spaces]);
 
   const handlePlayTrack = (track, action?: string) => {
     fetch(`/api/console/track/load?track=${track.name}`).then(() => {
+      setControlsVisible(false);
       setActiveTrack(track);
     });
   };
@@ -59,24 +65,42 @@ export default function PreviewSpace() {
       })
       .then((space) => {
         // @ts-ignore
-        space.elements = mapElements(space);
+        if (!space.elements) {
+          space.elements = mapElements(space);
+        }
+        scaleElements(space, window.innerWidth, window.innerHeight);
+        setControlsVisible(false);
         setActiveSpace(space);
       });
   };
 
   return (
     <>
-      {activeSpace && <Space space={activeSpace} />}
-      <Player
-        tracks={tracks}
-        activeTrack={activeTrack}
-        onPlayClick={handlePlayTrack}
-      />
-      <SpacePicker
-        onLoadSpace={handleLoadSpace}
-        activeSpace={activeSpace}
-        spaces={spaces}
-      />
+      {activeSpace && <Space editable={editable} space={activeSpace} />}
+      <div
+        onDoubleClick={() => setControlsVisible(!controlsVisible)}
+        style={{
+          cursor: 'pointer',
+          position: 'absolute',
+          height: 20,
+          top: 0,
+          left: 0,
+          right: 0,
+        }}
+      >
+        <Player
+          visible={controlsVisible}
+          tracks={tracks}
+          activeTrack={activeTrack}
+          onPlayClick={handlePlayTrack}
+        />
+        <SpacePicker
+          visible={controlsVisible}
+          onLoadSpace={handleLoadSpace}
+          activeSpace={activeSpace}
+          spaces={spaces}
+        />
+      </div>
     </>
   );
 }

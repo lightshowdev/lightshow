@@ -27,6 +27,7 @@ export function useSpaceStorage() {
     );
 
     // reset if core elements changed
+    // @TODO - this is deprecated
     if (!isEqual(baseElements, cachedBaseElements)) {
       setSpaceConfig(clone(baseSpace));
       return;
@@ -68,7 +69,8 @@ export function useSpaceStorage() {
     node: Konva.Node
   ) => {
     const updatedSpaceConfig = clone(spaceConfig);
-    const el = updatedSpaceConfig!.elements.find((el) => el.id === node.id());
+    const baseElId = node.id().split(':').slice(0, 2).join(':');
+    const el = updatedSpaceConfig!.elements.find((el) => el.id === baseElId);
     if (!el) {
       return;
     }

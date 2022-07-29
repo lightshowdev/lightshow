@@ -7,7 +7,11 @@ import type { Element } from '../Space';
 
 let socketClient;
 
-export const useIOCanvas = (isIO: boolean, clientOverride?: any) => {
+export const useIOCanvas = (
+  layerRef: React.MutableRefObject<Konva.Layer>,
+  clientOverride?: any
+) => {
+  const trackPlayingRef = React.useRef(false);
   const [elements, setElements] = React.useState<Element[]>([]);
 
   // Dictionary for fast canvas element access
@@ -18,69 +22,81 @@ export const useIOCanvas = (isIO: boolean, clientOverride?: any) => {
     [id: string]: { offset: number; limit: number; currIndex: number };
   }>({});
 
-  // Cache the layer containing all the canvas nodes
-  const [layer, setLayer] = React.useState<Konva.Layer | null>(null);
+  const isSafari =
+    navigator.userAgent.includes('Safari') &&
+    !navigator.userAgent.includes('Chrome');
+
+  const hideElements = () => {
+    Object.values(elementCache.current).forEach((canvasEl) => {
+      canvasEl?.to({
+        opacity: 0,
+        duration: isSafari ? 0 : 0.1,
+      });
+    });
+  };
 
   React.useEffect(() => {
-    if (!isIO || !elements.length || !layer) {
+    if (!layerRef.current || !elements.length) {
       return;
     }
+
+    const layer = layerRef.current;
 
     if (clientOverride) {
       socketClient = clientOverride;
     } else if (!socketClient) {
       socketClient = io({});
     }
+    elementCache.current = {};
+    indexingCache.current = {};
+
+    // Delay for layer rendering
+    setTimeout(() => {
+      elements?.forEach((el) => {
+        if (el.limit) {
+          indexingCache.current[el.id] = {
+            limit: el.limit,
+            offset: el.offset || 0,
+            currIndex: el.offset || 0,
+          };
+
+          const pagedItems = new Array(el.limit)
+            .fill(0)
+            .map((_, i) => i + (el.offset || 0))
+            .forEach((elNumber) => {
+              const canvasEl = layer.findOne(`#${el.id}:${elNumber}`);
+              elementCache.current[`${el.id}:${elNumber}`] = canvasEl;
+            });
+        } else {
+          const canvasEl = layer.findOne(`#${el.id}`);
+          elementCache.current[el.id] = canvasEl;
+        }
+      });
+
+      if (trackPlayingRef.current) {
+        hideElements();
+      }
+    }, 100);
 
     socketClient
       .on(IOEvent.TrackStart, () => {
-        elements.forEach((el) => {
-          if (el.limit) {
-            indexingCache.current[el.id] = {
-              limit: el.limit,
-              offset: el.offset || 0,
-              currIndex: el.offset || 0,
-            };
-
-            const pagedItems = new Array(el.limit)
-              .fill(0)
-              .map((_, i) => i + (el.offset || 0))
-              .forEach((elNumber) => {
-                const canvasEl = layer.findOne(`#${el.id}:${elNumber}`);
-                elementCache.current[`${el.id}:${elNumber}`] = canvasEl;
-                canvasEl.to({
-                  opacity: 0,
-                  duration: 0.1,
-                });
-              });
-          } else {
-            const canvasEl = layer.findOne(`#${el.id}`);
-            elementCache.current[el.id] = canvasEl;
-            canvasEl.to({
-              opacity: 0,
-              duration: 0.1,
-            });
-          }
-        });
+        trackPlayingRef.current = true;
+        hideElements();
       })
       .on(IOEvent.TrackEnd, () => {
-        // elements.forEach((el) => {
-        //   const canvasEl = elementCache.current[el.id];
-        //   canvasEl?.to({
-        //     opacity: 1,
-        //     duration: 0.1,
-        //   });
-        // });
-
+        trackPlayingRef.current = false;
         Object.values(elementCache.current).forEach((canvasEl) => {
           canvasEl.to({
             opacity: 1,
-            duration: 0.1,
+            duration: isSafari ? 0 : 0.1,
           });
         });
       })
       .on(IOEvent.NoteOn, (note, velocity, length = 0, sameNotes) => {
-        const notes = [note, ...(sameNotes || [])];
+        const notes = [note];
+        if (sameNotes) {
+          notes.push(...sameNotes);
+        }
         const noteEls = elements.filter((el) =>
           el.notes.some((n) => notes.includes(n))
         );
@@ -102,7 +118,7 @@ export const useIOCanvas = (isIO: boolean, clientOverride?: any) => {
 
             canvasEl?.to({
               opacity: 1,
-              duration: isDimmable ? length * 0.001 : 0,
+              duration: isDimmable && !isSafari ? length * 0.001 : 0,
             });
           });
 
@@ -136,6 +152,7 @@ export const useIOCanvas = (isIO: boolean, clientOverride?: any) => {
     return () => {
       socketClient.removeAllListeners();
     };
-  }, [elements, layer]);
-  return { setLayer, setElements };
+  }, [elements]);
+
+  return { setElements };
 };

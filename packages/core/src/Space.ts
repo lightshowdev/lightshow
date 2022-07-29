@@ -4,8 +4,8 @@ export interface Element {
   dimmableNotes?: string[];
   type: string;
   channel: number;
-  x?: number;
-  y?: number;
+  x?: number | string;
+  y?: number | string;
   rotation?: number;
   width?: number;
   height?: number;
@@ -26,6 +26,7 @@ export interface Space {
     dimmableNotes?: string[][];
     elements: Partial<Element>[];
   }[];
-
+  width?: number;
+  height?: number;
   elements: Element[];
 }

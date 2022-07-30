@@ -7,11 +7,7 @@
      
       xmlns="http://www.w3.org/2000/svg"
     >
-      <defs>
-        <filter id="glow" width="300%" height="300%" x="-100%" y="-100%">
-          <feGaussianBlur in="thicken" stdDeviation="30" result="blurred" />
-        </filter>
-      </defs>
+    
       <pattern id="p1" width="400" height="300" patternUnits="userSpaceOnUse">
         <g id="circle" transform="rotate(30)">
           <circle fill="rgb(255,0,0)" cx="50" cy="50" r="50" />
@@ -23,7 +19,6 @@
         transform="translate(0.000000,1178.000000) scale(0.100000,-0.100000)"
         fill="inherit"
         stroke="none"
-        filter="url(#glow)"
       >
         <path
           d="M7546 11742 c27 -192 98 -333 190 -377 41 -19 158 -20 213 -1 35 13

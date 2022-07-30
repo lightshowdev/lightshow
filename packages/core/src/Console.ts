@@ -3,7 +3,7 @@ import EventEmitter from 'events';
 
 import { AudioStream, PlayOptions, PassStream } from './streams';
 import { Midi, MidiPlayerEvent } from './Midi';
-import type { Server as SocketIOServer } from 'socket.io';
+import type { Server as SocketIOServer, Socket } from 'socket.io';
 
 import { Playlist, Track } from './Playlist';
 import { IOEvent, Logger } from './';
@@ -21,6 +21,7 @@ export class Console extends EventEmitter {
   private audioFileStream: fs.ReadStream | null = null;
   private audioStream: ReturnType<typeof AudioStream> | null = null;
   private passStream: PassStream | null = null;
+  private activePlayer: string | null = null;
 
   constructor({
     playlist,
@@ -35,16 +36,23 @@ export class Console extends EventEmitter {
     this.playlist = playlist;
     this.io = io;
     this.logger = logger.getGroupLogger(this.logGroup);
-    this.io.on('connection', (socket) => {
-      if (socket.handshake.auth?.id === 'player') {
+    this.io.on('connection', (socket: Socket) => {
+      if (socket.handshake.auth?.id === 'player' && !this.activePlayer) {
         this.logger.debug('Socket connecion for player controls established.');
         socket.on(IOEvent.TrackSeek, (time: number) => this.seekTrack(time));
         socket.on(IOEvent.TrackPause, () => this.pauseTrack());
         socket.on(IOEvent.TrackResume, (time: number) =>
           this.resumeTrack(time)
         );
-        socket.on(IOEvent.TrackPlay, () => this.playTrack());
+        socket.on(IOEvent.TrackPlay, () => {
+          this.activePlayer = socket.handshake.address;
+          this.playTrack();
+        });
         socket.on(IOEvent.TrackStop, () => this.stopTrack());
+
+        socket.on('disconnect', () => {
+          this.stopTrack();
+        });
       }
     });
   }
@@ -118,7 +126,15 @@ export class Console extends EventEmitter {
   }
 
   stopTrack() {
-    this.logger.error('Not implemented');
+    if (!this.activePlayer) {
+      return;
+    }
+    if (this.currentTrack) {
+      this.emitTrackEnd(this.currentTrack);
+    }
+    this.logger.debug(`Stopping track started by ${this.activePlayer}`);
+    this.activePlayer = null;
+    this.midiPlayer?.stop();
   }
 
   private pipeAudio(track: Track, options?: PlayOptions) {

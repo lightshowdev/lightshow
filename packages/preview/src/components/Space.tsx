@@ -2,7 +2,8 @@ import * as React from 'react';
 import { Stage, Layer, Image, Transformer } from 'react-konva';
 import Konva from 'konva';
 import useImage from 'use-image';
-import { useIOCanvas, useSpaceStorage } from '@lightshow/core/dist/hooks';
+import { useIOCanvas, io, useSpaceStorage } from '@lightshow/core/dist/hooks';
+import { shuffle } from 'lodash';
 
 const ShapeImage: React.FC<
   Omit<Konva.ImageConfig, 'image'> & { src: string }
@@ -14,25 +15,21 @@ const ShapeImage: React.FC<
 
 const Space: React.FC<{
   space: any;
-  style?: React.CSSProperties;
-}> = ({ space }) => {
+  editable?: boolean;
+}> = ({ space, editable = false }) => {
   const layerRef = React.useRef<Konva.Layer>();
   const stageRef = React.useRef<Konva.Stage>();
   const transRef = React.useRef<Konva.Transformer>();
+  const randomArrays = React.useRef<{ [id: string]: number[] }>({});
 
-  const { setElements, setLayer } = useIOCanvas(true);
+  const { setElements } = useIOCanvas(layerRef, io);
   const { spaceConfig, handleChange, initializeSpace } = useSpaceStorage();
 
   React.useEffect(() => {
-    setElements(space.elements);
+    randomArrays.current = {};
     initializeSpace(space);
+    setElements(space.elements);
   }, [space]);
-
-  React.useEffect(() => {
-    if (layerRef.current) {
-      setLayer(layerRef.current);
-    }
-  }, [layerRef.current, space.elements]);
 
   React.useEffect(() => {
     if (stageRef.current) {
@@ -53,6 +50,7 @@ const Space: React.FC<{
   return (
     <Stage
       ref={stageRef}
+      listening={!editable}
       draggable
       width={window.innerWidth}
       height={window.innerHeight}
@@ -65,7 +63,7 @@ const Space: React.FC<{
         }
       }}
     >
-      <Layer ref={layerRef}>
+      <Layer ref={layerRef} listening={!editable}>
         {spaceConfig?.elements?.length &&
           spaceConfig.elements.map(
             ({
@@ -83,9 +81,13 @@ const Space: React.FC<{
               notes,
             }) => {
               if (src.includes('*')) {
-                const pagedItems = new Array(limit)
-                  .fill(0)
-                  .map((_, i) => i + offset);
+                let pagedItems = randomArrays.current[`${box}:${channel}`];
+                if (!pagedItems) {
+                  pagedItems = shuffle(
+                    new Array(limit).fill(0).map((_, i) => i + offset)
+                  );
+                  randomArrays.current[`${box}:${channel}`] = pagedItems;
+                }
                 return pagedItems.map((itemNumber) => {
                   const id = `${box}:${channel}:${itemNumber}`;
                   const itemSrc = src.replace('*', itemNumber.toString());
@@ -98,6 +100,7 @@ const Space: React.FC<{
                       height={height}
                       x={x}
                       y={y}
+                      listening={!editable}
                       rotation={rotation}
                       src={itemSrc}
                       draggable

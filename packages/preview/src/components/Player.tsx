@@ -13,12 +13,14 @@ interface PlayerProps {
   tracks: Track[];
   activeTrack: Track;
   onPlayClick: (track: Track) => void;
+  visible?: boolean;
 }
 
 export const Player: React.FC<PlayerProps> = ({
   tracks,
   activeTrack,
   onPlayClick,
+  visible,
 }) => {
   const [togglePlayer, setTogglePlayer] = React.useState(false);
 
@@ -41,7 +43,7 @@ export const Player: React.FC<PlayerProps> = ({
       <Box sx={{ position: 'absolute', right: 50, top: 30 }}>
         <IconButton
           size="large"
-          sx={{ color: 'white' }}
+          sx={{ color: visible ? 'white' : 'transparent' }}
           aria-label="openplayer"
           onClick={() => setTogglePlayer(true)}
         >
@@ -66,7 +68,7 @@ export const Player: React.FC<PlayerProps> = ({
               >
                 <IconButton
                   disabled={activeTrack?.file === track.file}
-                  onClick={() => onPlayClick(track)}
+                  onClickCapture={() => onPlayClick(track)}
                 >
                   {activeTrack?.file === track.file ? (
                     <GraphicEqIcon htmlColor="green" />

@@ -11,7 +11,7 @@ export function mapElements(spaceConfig: Space) {
     return [];
   }
 
-  const mappedElements = spaceConfig.boxes
+  return spaceConfig.boxes
     .map((b) => {
       const channels = [...new Array(b.channels)].map(
         (_, index) =>
@@ -59,6 +59,4 @@ export function mapElements(spaceConfig: Space) {
     })
     .flat()
     .filter((el) => el);
-
-  return mappedElements;
 }

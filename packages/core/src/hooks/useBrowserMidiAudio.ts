@@ -42,9 +42,16 @@ export const useBrowserMidiAudio = ({
   durationRef?: React.MutableRefObject<HTMLSpanElement>;
   track: Track;
 }) => {
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+
+  const isSafari =
+    navigator.userAgent.includes('Safari') &&
+    !navigator.userAgent.includes('Chrome');
+
   const [time, setTime] = React.useState(0);
   const [duration, setDuration] = React.useState(0);
   const [waitForResume, setWaitForResume] = React.useState(false);
+  const [trackQueued, setTrackQueued] = React.useState(false);
 
   React.useEffect(() => {
     if (track?.midiEncoded) {
@@ -102,6 +109,7 @@ export const useBrowserMidiAudio = ({
       'playing',
       () => {
         const currentTime = audioRef.current.currentTime;
+        setTrackQueued(false);
 
         midiPlayer.seek(currentTime);
         if (!midiPlayer.isPlaying()) {
@@ -153,9 +161,13 @@ export const useBrowserMidiAudio = ({
           timeRef.current.innerText = getTimeString(0);
         }
 
-        setTimeout(() => {
-          handleResume();
-        }, 50);
+        if (!isSafari || !isIOS) {
+          setTimeout(() => {
+            handleResume();
+          }, 50);
+        } else {
+          setTrackQueued(true);
+        }
       });
 
       audioRef.current.addEventListener('timeupdate', onTimeUpdate);
@@ -168,7 +180,16 @@ export const useBrowserMidiAudio = ({
   }, [audioRef]);
 
   return {
-    values: { time, duration, percentage: Math.ceil((time / duration) * 100) },
-    handlers: { seek: handleSeek, pause: handlePause, resume: handleResume },
+    values: {
+      time,
+      duration,
+      percentage: Math.ceil((time / duration) * 100),
+      trackLoaded: trackQueued,
+    },
+    handlers: {
+      seek: handleSeek,
+      pause: handlePause,
+      resume: handleResume,
+    },
   };
 };

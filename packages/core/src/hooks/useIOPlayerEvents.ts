@@ -3,6 +3,7 @@ import { IOEvent } from '../IOEvent';
 import type { Track } from '../Playlist';
 import { io } from 'socket.io-client';
 import { getTimeString } from '../helpers';
+import { throttle } from 'lodash';
 
 let socketClient;
 
@@ -21,15 +22,26 @@ export const useIOPlayerEvents = ({
     socketClient = io({ auth: { id: 'player' } });
   }
 
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+
+  const isSafari =
+    navigator.userAgent.includes('Safari') &&
+    !navigator.userAgent.includes('Chrome');
+
   const socketRef = React.useRef(socketClient);
 
   const [time, setTime] = React.useState(0);
   const [duration, setDuration] = React.useState(0);
   const [waitForResume, setWaitForResume] = React.useState(false);
+  const [trackQueued, setTrackQueued] = React.useState(false);
 
   React.useEffect(() => {
     socketRef.current.emit(IOEvent.TrackStop);
   }, [track]);
+
+  window.addEventListener('beforeunload', () => {
+    socketRef.current.emit(IOEvent.TrackStop);
+  });
 
   const handleSeek = (percentage: number) => {
     if (!socketRef.current || !audioRef.current) {
@@ -66,21 +78,26 @@ export const useIOPlayerEvents = ({
     audioRef.current.pause();
   };
 
+  const bufferSeek = () => {
+    setTimeout(() => {
+      if (audioRef.current.currentTime === 0) {
+        bufferSeek();
+        return;
+      }
+      socketRef.current.emit(IOEvent.TrackSeek, audioRef.current.currentTime);
+    }, 100);
+  };
+
   const handleResume = () => {
     if (!socketRef.current) {
       return;
     }
 
-    // if (time === 0) {
-    //   setTimeout(() => {
-    //     socketRef.current.emit(IOEvent.TrackPlay);
-    //     audioRef.current.play();
-    //   }, 300);
-    // } else {
     audioRef.current.addEventListener(
       'playing',
       () => {
         const currentTime = audioRef.current.currentTime;
+        setTrackQueued(false);
 
         socketRef.current.emit(
           currentTime === 0 ? IOEvent.TrackPlay : IOEvent.TrackSeek,
@@ -89,33 +106,28 @@ export const useIOPlayerEvents = ({
 
         // Recalibrate for buffering
         if (currentTime === 0) {
-          setTimeout(() => {
-            socketRef.current.emit(
-              IOEvent.TrackSeek,
-              audioRef.current.currentTime
-            );
-          }, 300);
+          bufferSeek();
         }
       },
       { once: true }
     );
+
     audioRef.current.play();
-    // }
   };
 
+  const onTimeUpdate = throttle(() => {
+    if (audioRef.current.seeking) {
+      return;
+    }
+    const time = audioRef.current.currentTime;
+    timeRef.current.innerText = getTimeString(time);
+
+    if (!waitForResume) {
+      setTime(time);
+    }
+  }, 1000);
+
   React.useEffect(() => {
-    const onTimeUpdate = () => {
-      if (audioRef.current.seeking) {
-        return;
-      }
-      const time = audioRef.current.currentTime;
-      timeRef.current.innerText = getTimeString(time);
-
-      if (!waitForResume) {
-        setTime(time);
-      }
-    };
-
     if (audioRef.current) {
       audioRef.current.addEventListener('loadedmetadata', () => {
         const { duration } = audioRef.current;
@@ -124,10 +136,22 @@ export const useIOPlayerEvents = ({
         durationRef.current.innerText = getTimeString(duration);
         timeRef.current.innerText = getTimeString(0);
 
-        setTimeout(() => {
-          handleResume();
-        }, 50);
+        if (!isSafari || !isIOS) {
+          setTimeout(() => {
+            handleResume();
+          }, 50);
+        } else {
+          setTrackQueued(true);
+        }
       });
+
+      audioRef.current.addEventListener('ended', () => {
+        setTime(0);
+        timeRef.current.innerText = getTimeString(0);
+        socketRef.current.emit(IOEvent.TrackStop);
+        audioRef.current.currentTime = 0;
+      });
+
       audioRef.current.addEventListener('timeupdate', onTimeUpdate);
       audioRef.current.addEventListener('seeking', () => {}, { once: true });
     }
@@ -138,7 +162,12 @@ export const useIOPlayerEvents = ({
   }, [audioRef]);
 
   return {
-    values: { time, duration, percentage: Math.ceil((time / duration) * 100) },
+    values: {
+      time,
+      duration,
+      percentage: Math.ceil((time / duration) * 100),
+      trackLoaded: trackQueued,
+    },
     handlers: { seek: handleSeek, pause: handlePause, resume: handleResume },
   };
 };

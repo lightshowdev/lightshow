@@ -8,7 +8,7 @@ import {
   Tooltip,
   Snackbar,
 } from '@mui/material';
-import { useBrowserMidiAudio } from '@lightshow/core/dist/hooks';
+import { useIOPlayerEvents } from '@lightshow/core/dist/hooks';
 import { getTimeString } from '@lightshow/core/dist/helpers';
 import type { Track } from '@lightshow/core';
 
@@ -16,6 +16,7 @@ import PlayCircleFilledIcon from '@mui/icons-material/PlayCircleFilled';
 import PauseCircleFilledIcon from '@mui/icons-material/PauseCircleFilled';
 import FastRewindIcon from '@mui/icons-material/FastRewind';
 import FastForwardIcon from '@mui/icons-material/FastForward';
+
 interface PlayerControlProps {
   track?: Track;
   onChange?: (
@@ -42,16 +43,6 @@ export const PlayerControls: React.FC<PlayerControlProps> = ({
     durationRef,
     audioRef,
   });
-
-  // const {
-  //   values: { time, duration, percentage, trackLoaded },
-  //   handlers,
-  // } = useBrowserMidiAudio({
-  //   track,
-  //   timeRef,
-  //   durationRef,
-  //   audioRef,
-  // });
 
   const [seekPercentage, setSeekPercentage] = React.useState(percentage);
   const [seekChangePercentage, setSeekChangePercentage] = React.useState<

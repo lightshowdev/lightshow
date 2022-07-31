@@ -8,8 +8,7 @@
   "author": "Patrick Dillon <me@lightshow.dev>",
   "license": "MIT",
   "scripts": {
-    "config:copy": "cp -r config.sample config",
-    "build": "yarn config:copy && ./scripts/build-all.sh",
+    "build": "./scripts/build-all.sh",
     "start": "yarn workspace @lightshow/server start",
     "dev": "yarn workspace @lightshow/server dev"
   },

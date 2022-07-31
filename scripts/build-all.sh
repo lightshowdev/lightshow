@@ -1,3 +1,8 @@
+if [ ! -d config ]; then
+   cp -r config.sample config
+   echo "Copied ./config.sample ./config"
+fi
+
 echo "Building core..."
 yarn workspace @lightshow/core build
 echo "Building sms..."

@@ -13,7 +13,7 @@ const metaProps = [
 
 export class SoxStream extends Writable {
   soxProcess: ChildProcess | null;
-  soxPath: string = '/usr/local/bin/sox';
+  soxPath: string = '/usr/local/bin/play';
   playOptions?: PlayOptions;
   currentTime: number = 0;
   duration: number = 0;
@@ -43,7 +43,13 @@ export class SoxStream extends Writable {
       }
     }
 
-    const soxArgs = ['-', '-d'].concat(trimArgs);
+    const typeArgs: string[] = [];
+
+    if (this.playOptions?.type === 'mp3') {
+      typeArgs.push('-t', 'mp3');
+    }
+
+    const soxArgs = typeArgs.concat(['-']).concat(trimArgs);
 
     this.soxProcess = spawn(this.soxPath, soxArgs);
 
@@ -70,6 +76,8 @@ export class SoxStream extends Writable {
   ) {
     if (chunk) {
       this.soxProcess?.stdin?.write(chunk, callback);
+    } else {
+      this.emit('close');
     }
   }
 
@@ -109,13 +117,22 @@ export class SoxStream extends Writable {
       }
     }
 
-    const [, currentTime] = msg.split(' ');
+    const [, currentTime = '0'] = msg.split(' ');
     this.currentTime = convertTimeStringtoSeconds(currentTime);
     // Log time stamp
     this.emit('time', { time: this.currentTime, duration: this.duration });
   }
 }
 
+/**
+ * Parse SoX header output to get current time and duration (wav only)
+ * @example
+ *  Encoding: Signed PCM
+ *  Channels: 2 @ 24-bit
+ *  Samplerate: 44100Hz
+ *  Replaygain: off
+ *  Duration: 00:04:02.24
+ */
 function convertTimeStringtoSeconds(timeString: string) {
   return timeString
     .split(':')

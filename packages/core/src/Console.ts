@@ -22,6 +22,7 @@ export class Console extends EventEmitter {
   private audioStream: ReturnType<typeof AudioStream> | null = null;
   private passStream: PassStream | null = null;
   private activePlayer: string | null = null;
+  private audioFileType: 'wav' | 'mp3' = 'wav';
 
   constructor({
     playlist,
@@ -72,6 +73,9 @@ export class Console extends EventEmitter {
 
     if (formats.includes('audio')) {
       this.audioFile = this.playlist.getFilePath(track, 'audio');
+      if (this.audioFile?.endsWith('.mp3')) {
+        this.audioFileType = 'mp3';
+      }
       this.logger.debug('Audio file loaded.');
     }
 
@@ -112,7 +116,7 @@ export class Console extends EventEmitter {
     const track = this.currentTrack;
 
     if (this.audioFile) {
-      this.pipeAudio(track, { start: 0 });
+      this.pipeAudio(track, { start: 0, type: this.audioFileType });
     }
     // If playing a midi file only
     else if (this.midiPlayer) {
@@ -139,17 +143,17 @@ export class Console extends EventEmitter {
 
   private pipeAudio(track: Track, options?: PlayOptions) {
     if (this.audioFile) {
+      this.logger.debug(`Creating read stream for ${this.audioFile}`);
       this.audioFileStream = fs.createReadStream(this.audioFile);
       this.audioStream = AudioStream({ type: 'sox', options });
 
-      this.audioFileStream
+      this.audioStream
         .on('close', () => {
           this.midiPlayer?.stop();
           this.logger.debug('File stream closed and MIDI play stopped.');
           this.emitTrackEnd(track);
         })
         .on('error', (err: Error) => {
-          this.logger.error(err);
           this.midiPlayer?.stop();
           this.logger.debug('File stream error and MIDI play stopped.');
           this.emitTrackEnd(track);
@@ -157,15 +161,11 @@ export class Console extends EventEmitter {
 
       const passStream = (this.passStream = new PassStream());
 
-      passStream.on('data', (d) => {
-        if (!passStream.started) {
-          this.io.emit(IOEvent.TrackStart, track.file);
-          if (this.midiPlayer) {
-            this.logger.debug('MIDI play started.');
-            this.midiPlayer.play({ loop: false });
-          }
-
-          passStream.started = true;
+      this.audioStream.once('time', (d) => {
+        this.io.emit(IOEvent.TrackStart, track.file);
+        if (this.midiPlayer) {
+          this.logger.debug('MIDI play started.');
+          this.midiPlayer.play({ loop: false });
         }
       });
 
@@ -219,7 +219,10 @@ export class Console extends EventEmitter {
     }
 
     if (this.audioFile) {
-      this.pipeAudio(this.currentTrack!, { start: time + 0.3 });
+      this.pipeAudio(this.currentTrack!, {
+        start: time + 0.3,
+        type: this.audioFileType,
+      });
       this.io.emit(IOEvent.TrackResume);
     }
   }

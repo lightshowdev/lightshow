@@ -44,10 +44,6 @@ export const useIOPlayerEvents = ({
   });
 
   const handleSeek = (percentage: number) => {
-    if (!socketRef.current || !audioRef.current) {
-      return;
-    }
-
     const seekTime = Math.floor(duration * (percentage / 100));
     audioRef.current.pause();
     audioRef.current.currentTime = seekTime;
@@ -70,10 +66,6 @@ export const useIOPlayerEvents = ({
   };
 
   const handlePause = () => {
-    if (!socketRef.current) {
-      return;
-    }
-
     socketRef.current.emit(IOEvent.TrackPause);
     audioRef.current.pause();
   };
@@ -89,8 +81,8 @@ export const useIOPlayerEvents = ({
   };
 
   const handleResume = () => {
-    if (!socketRef.current) {
-      return;
+    if (time === 0) {
+      socketRef.current.emit(IOEvent.TrackStart);
     }
 
     audioRef.current.addEventListener(

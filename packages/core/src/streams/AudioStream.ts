@@ -4,6 +4,7 @@ import { SoxStream } from './SoxStream';
 export interface PlayOptions {
   start?: number;
   end?: number;
+  type: 'wav' | 'mp3';
 }
 
 interface AudioStreamOptions {

@@ -37,6 +37,14 @@ export function loadPlugins() {
 
   const pluginsManifest: PluginManifest[] = require(resolve(pluginsPath));
   pluginsManifest.forEach((entry) => {
+    const modulePath = entry.path || entry.name;
+    try {
+      require.resolve(modulePath);
+    } catch (e: any) {
+      logger.error({ msg: 'Plugin module cannot be loaded', error: e });
+      return;
+    }
+
     const plugin: Plugin = {
       path: entry.path,
       name: entry.name,

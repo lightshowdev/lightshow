@@ -7,13 +7,13 @@ import bodyParser from 'koa-bodyparser';
 import serve from 'koa-static';
 import path from 'path';
 
-import Preview from '@lightshow/preview';
+import { loadPlugins } from './loader';
 
-import { Playlist, Console, Logger } from '@lightshow/core';
-
-import SMSConroller, { SMSConfig } from '@lightshow/sms';
+import { Playlist, Console, Logger, SMSConfig } from '@lightshow/core';
 
 import { playlistRouter, consoleRouter } from './routes';
+
+const plugins = loadPlugins();
 
 const {
   SMS_PROVIDER = 'none',
@@ -22,10 +22,12 @@ const {
   PORT = '3000',
 } = process.env;
 
-const previewApp = new Preview();
-
 (async () => {
-  await previewApp.prepare();
+  const nextPlugins = plugins.filter((p) => p.type === 'nextjs');
+
+  for (const nextPlugin of nextPlugins) {
+    await nextPlugin.instance?.prepare();
+  }
 
   const playlist = new Playlist({ path: TRACKS_PATH });
 
@@ -44,7 +46,10 @@ const previewApp = new Preview();
 
   const trackConsole = new Console({ io, playlist, logger });
 
-  const smsController = SMSConroller({
+  // Only one SMS plugin will be instantiated
+  const smsPlugin = plugins.find((p) => p.type === 'sms');
+
+  const smsController = smsPlugin?.module({
     config: { provider: SMS_PROVIDER as SMSConfig['provider'] },
     console: trackConsole,
     logger,
@@ -85,7 +90,10 @@ const previewApp = new Preview();
   }
 
   router.all('(.*)', async (ctx) => {
-    await previewApp.handler(ctx.req, ctx.res);
+    for (const nextPlugin of nextPlugins) {
+      await nextPlugin.instance?.handler(ctx.req, ctx.res);
+    }
+
     ctx.respond = false;
   });
 

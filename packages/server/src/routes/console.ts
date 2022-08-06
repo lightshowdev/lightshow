@@ -21,9 +21,7 @@ consoleRouter.get('/console/track/play', async (ctx) => {
   if (track) {
     trackConsole.loadTrack({ track });
     try {
-      setTimeout(() => {
-        trackConsole.playTrack();
-      });
+      trackConsole.playTrack();
 
       ctx.body = `Now playing "${track.name}" by ${track.artist}`;
     } catch (err: any) {

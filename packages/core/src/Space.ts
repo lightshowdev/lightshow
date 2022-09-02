@@ -14,6 +14,7 @@ export interface Element {
   limit?: number;
   offset?: number;
   isDimmable?: boolean;
+  node?: any;
 }
 
 export interface Space {

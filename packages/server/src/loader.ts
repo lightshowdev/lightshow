@@ -41,7 +41,11 @@ export function loadPlugins() {
     try {
       require.resolve(modulePath);
     } catch (e: any) {
-      logger.error({ msg: 'Plugin module cannot be loaded', error: e });
+      logger.error({
+        msg: 'Plugin module cannot be loaded',
+        modulePath,
+        error: e,
+      });
       return;
     }
 
@@ -55,7 +59,7 @@ export function loadPlugins() {
     if (plugin.type === 'nextjs') {
       plugin.instance = new plugin.module();
     }
-
+    logger.debug(`Plugin loaded: ${entry.name}`);
     plugins.push(plugin);
   });
 

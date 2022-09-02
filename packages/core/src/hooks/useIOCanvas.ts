@@ -7,10 +7,7 @@ import type { Element } from '../Space';
 
 let socketClient;
 
-export const useIOCanvas = (
-  layerRef: React.MutableRefObject<Konva.Layer>,
-  clientOverride?: any
-) => {
+export const useIOCanvas = (clientOverride?: any) => {
   const trackPlayingRef = React.useRef(false);
   const [elements, setElements] = React.useState<Element[]>([]);
 
@@ -30,17 +27,17 @@ export const useIOCanvas = (
     Object.values(elementCache.current).forEach((canvasEl) => {
       canvasEl?.to({
         opacity: 0,
+        fillOpacity: 0,
+        fillPatternOpacity: 0,
         duration: isSafari ? 0 : 0.1,
       });
     });
   };
 
   React.useEffect(() => {
-    if (!layerRef.current || !elements.length) {
+    if (!elements.length) {
       return;
     }
-
-    const layer = layerRef.current;
 
     if (clientOverride) {
       socketClient = clientOverride;
@@ -64,11 +61,12 @@ export const useIOCanvas = (
             .fill(0)
             .map((_, i) => i + (el.offset || 0))
             .forEach((elNumber) => {
-              const canvasEl = layer.findOne(`#${el.id}:${elNumber}`);
-              elementCache.current[`${el.id}:${elNumber}`] = canvasEl;
+              // const canvasEl = layer.findOne(`#${el.id}:${elNumber}`);
+              // elementCache.current[`${el.id}:${elNumber}`] = canvasEl;
             });
         } else {
-          const canvasEl = layer.findOne(`#${el.id}`);
+          const canvasEl = el.node;
+          canvasEl.cache();
           elementCache.current[el.id] = canvasEl;
         }
       });
@@ -102,7 +100,9 @@ export const useIOCanvas = (
         );
 
         if (noteEls?.length) {
-          const isDimmable = noteEls[0].dimmableNotes?.includes(note);
+          const isDimmable = noteEls.some((el) =>
+            el.dimmableNotes?.includes(note)
+          );
 
           noteEls.forEach((el) => {
             let canvasEl;

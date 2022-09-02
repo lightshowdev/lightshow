@@ -3,31 +3,9 @@ import { IOEvent } from '../IOEvent';
 import { Midi } from '../Midi';
 import { Logger } from '../Logger';
 import type { Track } from '../Playlist';
-
 import { getTimeString } from '../helpers';
+import { io } from '../BrowserIOServer';
 
-class BrowserIOServer {
-  callbackList: { [ev: string]: (() => any)[] } = {};
-
-  on(eventName: string, callback: () => any) {
-    const callbacks = this.callbackList[eventName] ?? [];
-    callbacks.push(callback);
-    this.callbackList[eventName] = callbacks;
-    return this;
-  }
-
-  emit(eventName: string, ...args: []) {
-    this.callbackList[eventName]?.forEach((callback) => {
-      callback(...args);
-    });
-  }
-
-  removeAllListeners() {
-    this.callbackList = {};
-  }
-}
-
-export const io = new BrowserIOServer();
 const logger = new Logger({ level: ['debug'] });
 const midiPlayer = new Midi({ io, logger });
 

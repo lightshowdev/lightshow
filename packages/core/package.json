@@ -1,6 +1,6 @@
 {
   "name": "@lightshow/core",
-  "version": "1.1.1-0",
+  "version": "1.1.1",
   "description": "Lightshow.js core library",
   "main": "dist/index.js",
   "repository": {

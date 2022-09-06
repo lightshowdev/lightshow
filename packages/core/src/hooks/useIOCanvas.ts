@@ -7,7 +7,15 @@ import type { Element } from '../Space';
 
 let socketClient;
 
-export const useIOCanvas = (clientOverride?: any) => {
+interface IOCanvasOptions {
+  disableDimming?: boolean;
+  clientOverride?: any;
+}
+
+export const useIOCanvas = ({
+  disableDimming,
+  clientOverride,
+}: IOCanvasOptions = {}) => {
   const trackPlayingRef = React.useRef(false);
   const [elements, setElements] = React.useState<Element[]>([]);
 
@@ -19,17 +27,13 @@ export const useIOCanvas = (clientOverride?: any) => {
     [id: string]: { offset: number; limit: number; currIndex: number };
   }>({});
 
-  const isSafari =
-    navigator.userAgent.includes('Safari') &&
-    !navigator.userAgent.includes('Chrome');
-
   const hideElements = () => {
     Object.values(elementCache.current).forEach((canvasEl) => {
       canvasEl?.to({
         opacity: 0,
         fillOpacity: 0,
         fillPatternOpacity: 0,
-        duration: isSafari ? 0 : 0.1,
+        duration: disableDimming ? 0 : 0.1,
       });
     });
   };
@@ -86,7 +90,7 @@ export const useIOCanvas = (clientOverride?: any) => {
         Object.values(elementCache.current).forEach((canvasEl) => {
           canvasEl.to({
             opacity: 1,
-            duration: isSafari ? 0 : 0.1,
+            duration: disableDimming ? 0 : 0.1,
           });
         });
       })
@@ -118,7 +122,7 @@ export const useIOCanvas = (clientOverride?: any) => {
 
             canvasEl?.to({
               opacity: 1,
-              duration: isDimmable && !isSafari ? length * 0.001 : 0,
+              duration: isDimmable && !disableDimming ? length * 0.001 : 0,
             });
           });
 

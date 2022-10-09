@@ -1,11 +1,14 @@
 import * as React from 'react';
+import BezierEasing from 'bezier-easing';
 import { IOEvent } from '../IOEvent';
 
 import { io } from 'socket.io-client';
 import type Konva from 'konva';
-import type { Element } from '../Space';
+import { EffectType, Element } from '../Space';
 
 let socketClient;
+
+const easing = BezierEasing(0.42, 0, 1.0, 1.0);
 
 interface IOCanvasOptions {
   disableDimming?: boolean;
@@ -51,38 +54,39 @@ export const useIOCanvas = ({
     elementCache.current = {};
     indexingCache.current = {};
 
-    // Delay for layer rendering
-    setTimeout(() => {
-      elements?.forEach((el) => {
-        if (el.limit) {
-          indexingCache.current[el.id] = {
-            limit: el.limit,
-            offset: el.offset || 0,
-            currIndex: el.offset || 0,
-          };
+    elements?.forEach((el) => {
+      if (el.effect) {
+        const itemLimit = el.node?.children?.length;
+        indexingCache.current[el.id] = {
+          limit: itemLimit,
+          offset: el.offset || 0,
+          currIndex: el.offset || 0,
+        };
 
-          const pagedItems = new Array(el.limit)
-            .fill(0)
-            .map((_, i) => i + (el.offset || 0))
-            .forEach((elNumber) => {
-              // const canvasEl = layer.findOne(`#${el.id}:${elNumber}`);
-              // elementCache.current[`${el.id}:${elNumber}`] = canvasEl;
-            });
-        } else {
-          const canvasEl = el.node;
-          canvasEl.cache();
-          elementCache.current[el.id] = canvasEl;
-        }
-      });
+        new Array(itemLimit)
+          .fill(0)
+          .map((_, i) => i + (el.offset || 0))
+          .forEach((elNumber) => {
+            elementCache.current[`${el.id}:${elNumber}`] =
+              el.node?.children[elNumber];
+            elementCache.current[`${el.id}:${elNumber}`].cache();
+          });
 
-      if (trackPlayingRef.current) {
-        hideElements();
+        return;
       }
-    }, 100);
+      const canvasEl = el.node;
+      canvasEl.cache();
+      elementCache.current[el.id] = canvasEl;
+    });
+
+    if (trackPlayingRef.current) {
+      hideElements();
+    }
 
     socketClient
       .on(IOEvent.TrackStart, () => {
         trackPlayingRef.current = true;
+        cloneGroupEls(elements, elementCache);
         hideElements();
       })
       .on(IOEvent.TrackEnd, () => {
@@ -93,6 +97,7 @@ export const useIOCanvas = ({
             duration: disableDimming ? 0 : 0.1,
           });
         });
+        destroyClones(elements, elementCache);
       })
       .on(IOEvent.NoteOn, (note, velocity, length = 0, sameNotes) => {
         const notes = [note];
@@ -113,11 +118,16 @@ export const useIOCanvas = ({
 
             const indexingRecord = indexingCache.current[el.id];
 
-            if (indexingRecord) {
+            if (indexingRecord && el.effect === EffectType.Cycle) {
               canvasEl =
                 elementCache.current[`${el.id}:${indexingRecord.currIndex}`];
             } else {
               canvasEl = elementCache.current[el.id];
+            }
+
+            if (indexingRecord && isDimmable && el.effect) {
+              strobePixels(indexingCache, elementCache, el, length);
+              return;
             }
 
             canvasEl?.to({
@@ -137,7 +147,7 @@ export const useIOCanvas = ({
 
           const indexingRecord = indexingCache.current[el.id];
 
-          if (indexingRecord) {
+          if (indexingRecord && el.effect === EffectType.Cycle) {
             canvasEl =
               elementCache.current[`${el.id}:${indexingRecord.currIndex}`];
             indexingRecord.currIndex =
@@ -160,3 +170,76 @@ export const useIOCanvas = ({
 
   return { setElements };
 };
+
+function cloneGroupEls(elements, elementCache) {
+  elements
+    .filter((el) => el.effect)
+    .forEach((el) => {
+      elementCache.current[el.id] = el.node?.clone();
+      el.node?.getLayer().add(elementCache.current[el.id]);
+    });
+}
+
+function destroyClones(elements, elementCache) {
+  elements
+    .filter((el) => el.effect)
+    .forEach((el) => {
+      elementCache.current[el.id]?.destroy();
+      elementCache.current[el.id] = null;
+    });
+}
+
+function strobePixels(indexingCache, elementCache, el, duration) {
+  const childCount = el.node.children.length;
+  const interval = duration / childCount;
+  const indexingRecord = indexingCache.current[el.id];
+
+  let currEl;
+  let accum = 0;
+
+  const allKeys = Object.keys(elementCache.current).filter((k) =>
+    k.startsWith(`${el.id}:`)
+  );
+
+  allKeys.forEach((k) => {
+    elementCache.current[k]?.to({
+      opacity: el.effect === EffectType.WipeDown ? 1 : 0,
+      duration: 0,
+    });
+  });
+
+  const strobeEl = () => {
+    if (el.effect === EffectType.Cycle) {
+      currEl?.to({
+        opacity: 0,
+        duration: 0,
+      });
+    }
+    currEl = elementCache.current[`${el.id}:${indexingRecord.currIndex}`];
+    currEl?.to({
+      opacity: el.effect === EffectType.Cycle ? 1 : 0,
+      duration: 0,
+    });
+
+    indexingRecord.currIndex =
+      ((indexingRecord.currIndex + 1) % indexingRecord.limit) +
+      indexingRecord.offset;
+
+    if (accum < duration) {
+      const easeValue = easing(indexingRecord.currIndex / childCount);
+
+      accum += interval;
+
+      setTimeout(strobeEl, interval * (1 - easeValue));
+    } else {
+      allKeys.forEach((k) => {
+        elementCache.current[k]?.to({
+          opacity: 0,
+          duration: 0,
+        });
+      });
+    }
+  };
+
+  setTimeout(strobeEl);
+}

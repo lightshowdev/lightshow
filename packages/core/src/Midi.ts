@@ -69,50 +69,44 @@ export class Midi {
         io.emit(IOEvent.MidiFileLoaded);
         this.logger.debug('Midi file loaded.');
       })
-      .on(
-        MidiPlayerEvent.MidiEvent,
-        ({
-          name,
-          noteName,
-          noteNumber,
-          tick,
-          velocity = 0,
-        }: MidiPlayer.Event) => {
-          if (!noteNumber || !noteName) {
-            return;
-          }
-          if (this.disabledNotes?.includes(noteName || '')) {
-            return;
-          }
-          if (name === MidiEvent.NoteOn) {
-            if (dimmableRange.includes(noteNumber)) {
-              const computedLengthEvent = this.dimmerMap.find(
-                (ev) => ev.tick === tick && ev.noteNumber === noteNumber
-              );
+      .on(MidiPlayerEvent.MidiEvent, (midiEvent: MidiPlayer.Event) => {
+        this.logger.debug({ msg: 'raw_event', payload: midiEvent });
+        const { name, noteName, noteNumber, tick, velocity = 0 } = midiEvent;
+        if (!noteNumber || !noteName) {
+          return;
+        }
+        if (this.disabledNotes?.includes(noteName || '')) {
+          return;
+        }
+        if (name === MidiEvent.NoteOn) {
+          if (dimmableRange.includes(noteNumber)) {
+            const computedLengthEvent = this.dimmerMap.find(
+              (ev) => ev.tick === tick && ev.noteNumber === noteNumber
+            );
 
-              if (!computedLengthEvent) {
-                return;
-              }
-
-              io.emit(
-                IOEvent.NoteOn,
-                noteName,
-                noteNumber,
-                computedLengthEvent.length,
-                computedLengthEvent.sameNotes,
-                // auto off (for dimmer notes)
-                velocity < 125 ? 0 : 1
-              );
+            if (!computedLengthEvent) {
               return;
             }
 
-            io.emit(IOEvent.NoteOn, noteName, noteNumber);
+            const noteArgs = [
+              noteName,
+              noteNumber,
+              computedLengthEvent.length,
+              computedLengthEvent.sameNotes,
+              // auto off (for dimmer notes)
+              velocity,
+            ];
+            this.logger.debug({ msg: 'event_args', payload: noteArgs });
+            io.emit(IOEvent.NoteOn, ...noteArgs);
+            return;
           }
-          if (name === MidiEvent.NoteOff) {
-            io.emit(IOEvent.NoteOff, noteName, noteNumber);
-          }
+
+          io.emit(IOEvent.NoteOn, noteName, noteNumber);
         }
-      )
+        if (name === MidiEvent.NoteOff) {
+          io.emit(IOEvent.NoteOff, noteName, noteNumber);
+        }
+      })
       .on(MidiPlayerEvent.EndOfFile, () => {
         io.emit(IOEvent.MidiFileEnd);
         this.emit(MidiPlayerEvent.EndOfFile);
@@ -209,6 +203,8 @@ export class Midi {
     const dimmerNotes = midiEvents[0].filter(
       (ev) => ev.noteNumber && dimmableRange.includes(ev.noteNumber)
     );
+
+    this.logger.debug({ msg: 'dimmer_notes', dimmerNotes });
 
     const dimmerTimeMap: DimmerEvent[] = [];
 

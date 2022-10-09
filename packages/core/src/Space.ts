@@ -1,3 +1,11 @@
+export enum EffectType {
+  FadeOn = 'fade:on',
+  FadeOff = 'fade:off',
+  WipeUp = 'wipe:up',
+  WipeDown = 'wipe:down',
+  Cycle = 'cycle',
+}
+
 export interface Element {
   id: string;
   notes: string[];
@@ -14,6 +22,7 @@ export interface Element {
   limit?: number;
   offset?: number;
   isDimmable?: boolean;
+  effect?: EffectType;
   node?: any;
 }
 

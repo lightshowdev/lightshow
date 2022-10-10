@@ -9,7 +9,13 @@ import path from 'path';
 
 import { loadPlugins } from './loader';
 
-import { Playlist, Console, Logger, SMSConfig } from '@lightshow/core';
+import {
+  Playlist,
+  Console,
+  Logger,
+  SMSConfig,
+  LogLevel,
+} from '@lightshow/core';
 
 import { playlistRouter, consoleRouter, diagnosticsRouter } from './routes';
 
@@ -44,7 +50,10 @@ const {
   const server = http.createServer(app.callback());
   const io = new SocketIOServer(server);
   const logger = new Logger({
-    level: LOG_LEVELS !== '*' ? LOG_LEVELS.split(',') : '*',
+    level:
+      LOG_LEVELS !== '*'
+        ? (LOG_LEVELS.split(',') as LogLevel[])
+        : ('*' as LogLevel),
   });
 
   const trackConsole = new Console({ io, playlist, logger });

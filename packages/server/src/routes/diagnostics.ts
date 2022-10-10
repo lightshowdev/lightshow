@@ -14,9 +14,10 @@ diagnosticsRouter.get('/diagnostics/io', async (ctx) => {
       io.emit(
         event as string,
         n,
-        parseInt((velocity as string) || '0'),
+        0,
         length ? parseInt(length as string) : undefined,
-        sameNotes ? (sameNotes as string).split(',') : undefined
+        sameNotes ? (sameNotes as string).split(',') : undefined,
+        parseInt((velocity as string) || '0')
       );
     });
   } else {

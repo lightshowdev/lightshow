@@ -18,7 +18,10 @@ export function AudioStream(
 ): Writable & { currentTime?: number } {
   const { type = 'sox', options: soxOptions } = options;
   if (type === 'sox') {
-    return new SoxStream({ path: options.soxPath, options: soxOptions });
+    return new SoxStream({
+      path: options.soxPath || process.env.SOX_PATH,
+      options: soxOptions,
+    });
   }
 
   throw new Error('"type" is not set');

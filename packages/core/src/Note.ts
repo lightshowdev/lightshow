@@ -1,78 +1,4 @@
-export enum Note {
-  // All
-  C1 = 24,
-  D1 = 26,
-  E1 = 28,
-  F1 = 29,
-  Gb1 = 30,
-  G1 = 31,
-  A1 = 33,
-  B1 = 35,
-  // Pat LED
-  C2 = 36,
-  D2 = 38,
-  E2 = 40,
-  F2 = 41,
-  Gb2 = 42,
-  G2 = 43,
-  A2 = 45,
-  B2 = 47,
-  // Pat Dimmer on/off
-  C3 = 48,
-  D3 = 50,
-  E3 = 52,
-  F3 = 53,
-  Gb3 = 54,
-  G3 = 55,
-  A3 = 57,
-  B3 = 59,
-  // Barbara
-  C4 = 60,
-  D4 = 62,
-  E4 = 64,
-  F4 = 65,
-  Gb4 = 66,
-  G4 = 67,
-  A4 = 69,
-  B4 = 71,
-  // Dimmer
-  C5 = 72,
-  D5 = 74,
-  E5 = 76,
-  F5 = 77,
-  Gb5 = 78,
-  G5 = 79,
-  A5 = 81,
-  B5 = 83,
-  // Dimmer Up
-  C6 = 84,
-  D6 = 86,
-  E6 = 88,
-  F6 = 89,
-  Gb6 = 90,
-  G6 = 91,
-  A6 = 93,
-  B6 = 95,
-}
-
-export const dimmableRange = [
-  Note.C5,
-  Note.D5,
-  Note.E5,
-  Note.F5,
-  Note.Gb5,
-  Note.G5,
-  Note.A5,
-  Note.B5,
-  Note.C6,
-  Note.D6,
-  Note.E6,
-  Note.F6,
-  Note.Gb6,
-  Note.G6,
-  Note.A6,
-  Note.B6,
-];
+const NOTES = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
 
 export const dimmableNotes = [
   'C5',
@@ -90,3 +16,17 @@ export const dimmableNotes = [
   'A6',
   'B6',
 ];
+
+export function getNoteName(noteNumber) {
+  const octave = Math.floor(noteNumber / 12) - 1;
+  const note = NOTES[noteNumber % 12];
+  return `${note}${octave}`;
+}
+
+export function getNoteNumber(noteName) {
+  const octave = Number(noteName.split('').pop());
+  const noteIndex = NOTES.findIndex((n) => noteName.includes(n));
+  return octave * 12 + 12 + noteIndex;
+}
+
+export const dimmableRange = dimmableNotes.map((n) => getNoteNumber(n));

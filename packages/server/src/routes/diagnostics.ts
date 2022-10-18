@@ -1,5 +1,5 @@
 import Router from '@koa/router';
-import type { IOEvent } from '@lightshow/core';
+import { getNoteNumber } from '@lightshow/core';
 import type { Server as SocketIOServer } from 'socket.io';
 
 export const diagnosticsRouter = new Router();
@@ -14,7 +14,7 @@ diagnosticsRouter.get('/diagnostics/io', async (ctx) => {
       io.emit(
         event as string,
         n,
-        0,
+        getNoteNumber(n),
         length ? parseInt(length as string) : undefined,
         sameNotes ? (sameNotes as string).split(',') : undefined,
         parseInt((velocity as string) || '0')

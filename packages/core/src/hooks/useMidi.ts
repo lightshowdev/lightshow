@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { dimmableNotes, Note } from '../Note';
+import { dimmableNotes, getNoteName } from '../Note';
 
 export const useMidi = (isMidi: boolean, space: any) => {
   React.useEffect(() => {
@@ -19,11 +19,11 @@ export const useMidi = (isMidi: boolean, space: any) => {
     function getMIDIMessage(midiMessage: any) {
       const [command, note, velocity = 0] = midiMessage.data;
 
-      const noteName = Note[note];
-      let noteCommand = command == 144 ? 'note-on' : undefined;
+      const noteName = getNoteName(note);
+      let noteCommand = command == 144 ? 'note:on' : undefined;
 
       if (command == 128) {
-        noteCommand = 'note-off';
+        noteCommand = 'note:off';
       }
 
       const noteEls = elements

@@ -81,8 +81,14 @@ const {
   }
 
   router.all('(.*)', async (ctx) => {
+    const referer = ctx.headers.referer;
     for (const nextPlugin of nextPlugins) {
-      await nextPlugin.instance?.handler(ctx.req, ctx.res);
+      if (
+        ctx.path.startsWith(nextPlugin.instance?.basePath) ||
+        referer?.startsWith(nextPlugin.instance?.basePath)
+      ) {
+        await nextPlugin.instance?.handler(ctx.req, ctx.res);
+      }
     }
 
     ctx.respond = false;

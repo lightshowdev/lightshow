@@ -157,7 +157,7 @@ export const useIOPlayerEvents = ({
     values: {
       time,
       duration,
-      percentage: Math.ceil((time / duration) * 100),
+      percentage: duration ? Math.ceil((time / duration) * 100) : 0,
       trackLoaded: trackQueued,
     },
     handlers: { seek: handleSeek, pause: handlePause, resume: handleResume },

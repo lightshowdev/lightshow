@@ -2,6 +2,7 @@ const NOTES = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
 
 export const dimmableNotes = [
   'C5',
+  'D5',
   'E5',
   'F5',
   'Gb5',

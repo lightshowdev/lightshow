@@ -45,7 +45,7 @@ consoleRouter.get('/console/track/load', async (ctx) => {
   const track = trackConsole.playlist.getTrack(trackName as string);
 
   if (track) {
-    trackConsole.loadTrack({ track, formats: ['midi'] });
+    trackConsole.loadTrack({ track });
     ctx.body = `Track loaded`;
   }
   ctx.body = `Track "${trackName}" not found.`;

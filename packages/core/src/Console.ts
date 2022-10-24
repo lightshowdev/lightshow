@@ -124,8 +124,10 @@ export class Console extends EventEmitter {
         this.emitTrackEnd(track);
       });
 
-      this.io.emit(IOEvent.TrackStart, track.file);
-      this.midiPlayer.play({ loop: false });
+      if (!track.background) {
+        this.io.emit(IOEvent.TrackStart, track.file);
+      }
+      this.midiPlayer.play({ loop: !!track.background });
     }
   }
 
@@ -228,7 +230,9 @@ export class Console extends EventEmitter {
   }
 
   emitTrackEnd(track: Track) {
-    this.io.emit(IOEvent.TrackEnd, track);
+    if (!track.background) {
+      this.io.emit(IOEvent.TrackEnd, track);
+    }
     this.emit(IOEvent.TrackEnd, track);
     this.playlist.clearCurrentTrack();
   }

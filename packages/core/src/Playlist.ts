@@ -15,6 +15,7 @@ export interface Track {
   audio?: string;
   midi?: string;
   midiEncoded?: string;
+  background?: boolean;
 }
 
 type TrackLog = {

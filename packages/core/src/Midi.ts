@@ -132,7 +132,11 @@ export class Midi {
           this.midiPlayer.skipToSeconds(0);
           this.stop();
           this.play(options);
-        }, 100);
+          this.logger.info({
+            message: `Looping MIDI track`,
+            time: new Date().toISOString(),
+          });
+        }, 500);
       });
     }
   }

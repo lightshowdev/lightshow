@@ -41,6 +41,7 @@ export class Midi {
   }[] = [];
 
   private callbackList: { [ev: string]: (() => any)[] } = {};
+  private callackOnceList: { [ev: string]: (() => any)[] } = {};
 
   constructor({
     io,
@@ -126,8 +127,10 @@ export class Midi {
   play(options = { loop: false }) {
     this.midiPlayer.play();
     if (options.loop) {
-      this.on(MidiPlayerEvent.EndOfFile, () => {
+      this.once(MidiPlayerEvent.EndOfFile, () => {
         setTimeout(() => {
+          this.midiPlayer.skipToSeconds(0);
+          this.stop();
           this.play(options);
         }, 100);
       });
@@ -300,9 +303,22 @@ export class Midi {
     this.callbackList[eventName] = callbacks;
   }
 
+  // Custom isomorphic implementation of event emitter
+  once(eventName: string, callback: () => any) {
+    const callbacks = this.callackOnceList[eventName] ?? [];
+    callbacks.push(callback);
+    this.callackOnceList[eventName] = callbacks;
+  }
+
   emit(eventName: string, ...args: []) {
     this.callbackList[eventName]?.forEach((callback) => {
       callback(...args);
     });
+
+    this.callackOnceList[eventName]?.forEach((callback) => {
+      callback(...args);
+    });
+
+    this.callackOnceList[eventName] = [];
   }
 }

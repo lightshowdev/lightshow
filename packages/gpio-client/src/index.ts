@@ -4,6 +4,7 @@ import {
   parsePinMappings,
   pinMappings as defaultPinMappings,
 } from './pinMappings';
+import { IOEvent } from '@lightshow/core';
 import { log } from './logger';
 
 const { SERVER_URL, LOG_MESSAGES, DEVICE_NAME } = process.env;
@@ -17,7 +18,7 @@ function startUp() {
 
   initializePins();
   log(`Pins initialized:`, defaultPinMappings);
-//  toggleAllPins('on');
+  //  toggleAllPins('on');
 
   if (!SERVER_URL) {
     throw new Error('SERVER_URL must be configured');
@@ -57,15 +58,15 @@ function togglePinByNote(note: string, mode: 'on' | 'off') {
 
 function listenForNoteMessages(socket: Socket) {
   socket
-    .on('map-notes', (deviceName, mappings) => {
+    .on(IOEvent.MapNotes, (deviceName, mappings) => {
       if (deviceName === DEVICE_NAME) {
         pinMappings = parsePinMappings(mappings);
       }
     })
-    .on('song-start', () => toggleAllPins('off'))
-    .on('note-on', (note: string) => togglePinByNote(note, 'on'))
-    .on('note-off', (note: string) => togglePinByNote(note, 'off'))
-    .on('song-end', () => {
+    .on(IOEvent.TrackStart, () => toggleAllPins('off'))
+    .on(IOEvent.NoteOn, (note: string) => togglePinByNote(note, 'on'))
+    .on(IOEvent.NoteOff, (note: string) => togglePinByNote(note, 'off'))
+    .on(IOEvent.TrackEnd, () => {
       toggleAllPins('on');
       // Reset to default pins
       pinMappings = defaultPinMappings;

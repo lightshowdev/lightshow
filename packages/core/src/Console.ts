@@ -54,7 +54,12 @@ export class Console extends EventEmitter {
         socket.on('disconnect', () => {
           this.stopTrack();
         });
+        return;
       }
+
+      socket.once(IOEvent.ClientRegister, (clientId) => {
+        this.logger.info({ msg: 'Client registered', clientId });
+      });
     });
   }
 

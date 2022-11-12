@@ -6,7 +6,7 @@ export const diagnosticsRouter = new Router();
 
 diagnosticsRouter.get('/diagnostics/io', async (ctx) => {
   const { io }: { io: SocketIOServer } = ctx.state;
-  const { note, event, velocity, length, sameNotes } = ctx.query;
+  const { note, event, velocity, length, sameNotes, value } = ctx.query;
 
   if (note) {
     const notes = (note as string).split(',');
@@ -21,7 +21,11 @@ diagnosticsRouter.get('/diagnostics/io', async (ctx) => {
       );
     });
   } else {
-    io.emit(event as string);
+    const args = [];
+    if (value) {
+      args.push(value as string);
+    }
+    io.emit(event as string, ...args);
   }
 
   ctx.body = { event, note, velocity };

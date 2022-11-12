@@ -5,7 +5,7 @@ import { sortBy } from 'lodash';
 import type { Server as SocketIOServer } from 'socket.io';
 import { IOEvent } from './IOEvent';
 import { Logger } from './Logger';
-import { dimmableRange } from './Note';
+import { dimmableRange, getNoteNumber } from './Note';
 
 export enum MidiPlayerEvent {
   FileLoaded = 'fileLoaded',
@@ -22,6 +22,7 @@ interface DimmerEvent extends MidiPlayer.Event {
   length?: number;
   cancelled?: boolean;
   sameNotes?: string[];
+  sameNoteNums?: number[];
 }
 
 export class Midi {
@@ -261,6 +262,7 @@ export class Midi {
       );
 
       ev.sameNotes = alignedEvents.map((ae) => ae.noteName!);
+      ev.sameNoteNums = ev.sameNotes.map((noteName) => getNoteNumber(noteName));
       alignedEvents.forEach((ae) => (ae.cancelled = true));
     });
 

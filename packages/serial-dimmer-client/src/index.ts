@@ -79,7 +79,7 @@ function toggleAllChannels(mode: 'on' | 'off') {
 
 function listenForNoteMessages(socket: Socket) {
   socket
-    .on(IOEvent.MapNotes, (clientId, notes) => {
+    .on(IOEvent.MapNotes, (clientId, notes, isPrimary) => {
       if (clientId !== CLIENT_ID) {
         return;
       }
@@ -88,7 +88,13 @@ function listenForNoteMessages(socket: Socket) {
         if (notesRegistry.length > 1) {
           notesRegistry.pop();
         }
+
+        if (isPrimary) {
+          // clear all entries if primary registration
+          notesRegistry.length = 0;
+        }
         notesRegistry.push(mappedNotes);
+        log({ notesRegistry });
       }
     })
     .on(IOEvent.TrackStart, () => toggleAllChannels('off'))
@@ -102,6 +108,12 @@ function listenForNoteMessages(socket: Socket) {
 
         // Get latest activeNotes from notes:map event
         const activeNotes = notesRegistry[notesRegistry.length - 1];
+
+        if (!activeNotes) {
+          log('No activeNotes mapped!');
+          return;
+        }
+
         const pins = notes
           .map((n) => channels[activeNotes.indexOf(n) % channels.length])
           .filter((p) => p);
@@ -160,6 +172,8 @@ function listenForNoteMessages(socket: Socket) {
       if (notesRegistry.length > 1) {
         notesRegistry.pop();
       }
+      // Clear dimmer length cache
+      lengthCache = {};
     });
 
   if (LOG_MESSAGES === 'true') {

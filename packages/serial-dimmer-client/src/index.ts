@@ -40,7 +40,7 @@ function startUp() {
 
   setTimeout(() => {
     toggleAllChannels('on');
-  }, 500);
+  }, 2000);
 
   let socket: Socket;
   if (!SERVER_URL) {

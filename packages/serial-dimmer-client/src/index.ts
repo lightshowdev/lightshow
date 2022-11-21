@@ -79,7 +79,7 @@ function toggleAllChannels(mode: 'on' | 'off') {
 
 function listenForNoteMessages(socket: Socket) {
   socket
-    .on('map-notes', (clientId, notes) => {
+    .on(IOEvent.MapNotes, (clientId, notes) => {
       if (clientId !== CLIENT_ID) {
         return;
       }

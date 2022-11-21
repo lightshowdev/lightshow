@@ -1,24 +1,20 @@
 import SerialPort from 'serialport';
 import { io, Socket } from 'socket.io-client';
 import { IOEvent } from '@lightshow/core';
-import {
-  pinMappings as defaultPinMappings,
-  parsePinMappings,
-} from './pinMappings';
+
 import { log } from './logger';
 const {
   SERVER_URL,
   LOG_MESSAGES,
   PORT_ADDRESS = '/dev/ttyUSB0',
   BAUD_RATE = '256000',
-  DIMMABLE_RANGE = '',
-  DIMMABLE_DOWN_RANGE = '',
-  DEVICE_NAME,
+  CHANNELS = '1,2,4,8,16,32,64,128',
+  CLIENT_ID,
 } = process.env;
 
 const port = new SerialPort(PORT_ADDRESS, { baudRate: parseInt(BAUD_RATE) });
 
-let pinMappings = defaultPinMappings;
+const channels: number[] = [];
 
 port.on('open', () => {
   startUp();
@@ -31,14 +27,19 @@ port.on('data', (data) => {
 const minLevel = 85;
 const maxLevel = 35;
 
-const dimmableNotes = DIMMABLE_RANGE.split(',');
-const dimmableDownNotes = DIMMABLE_DOWN_RANGE.split(',');
+const notesRegistry: string[][] = [];
+
+/**
+ * Track last note on. If it has length > 1 it is dimmable and we know not turn it off
+ */
+let lengthCache: { [note: string]: number } = {};
 
 function startUp() {
-  log(`Pins initialized:`, pinMappings);
+  parseChannels();
+  log(`Channels initialized:`, channels);
 
   setTimeout(() => {
-    toggleAllPins('on');
+    toggleAllChannels('on');
   }, 500);
 
   let socket: Socket;
@@ -49,28 +50,25 @@ function startUp() {
   }
 
   listenForNoteMessages(socket);
+  registerClient(socket);
 }
 
-function convertToBinary(pinValues: number[]) {
-  return pinValues
-    .reduce((t, v) => t + Math.pow(2, v - 1), 0)
-    .toString()
-    .padStart(3, '0');
+function registerClient(socket: Socket) {
+  socket.emit(IOEvent.ClientRegister, CLIENT_ID);
 }
 
-function getSum(pinValues: number[]) {
-  return pinValues
-    .reduce((t, v) => t + v, 0)
-    .toString()
-    .padStart(3, '0');
+function parseChannels() {
+  CHANNELS.split(',')
+    .map((c) => parseInt(c.trim()))
+    .forEach((mc) => channels.push(mc));
 }
 
-function toggleAllPins(mode: 'on' | 'off') {
-  if (!pinMappings) {
-    throw new Error('No pins mapped. Please configure NOTE_PIN_MAPPINGS.');
+function toggleAllChannels(mode: 'on' | 'off') {
+  if (!channels.length) {
+    throw new Error('No channels mapped. Please configure CHANNELS.');
   }
 
-  const pinBits = getSum([...new Set(Object.values(pinMappings))]);
+  const pinBits = getSum(channels);
 
   const endLevel = mode === 'on' ? maxLevel : minLevel;
   const startLevel = mode === 'on' ? minLevel : maxLevel;
@@ -79,54 +77,78 @@ function toggleAllPins(mode: 'on' | 'off') {
   port.write(`${payload}\n`);
 }
 
-function togglePin(pin: number, mode: 'on' | 'off') {}
-
 function listenForNoteMessages(socket: Socket) {
   socket
-    .on('map-notes', (deviceName, mappings) => {
-      if (deviceName === DEVICE_NAME) {
-        pinMappings = parsePinMappings(mappings);
+    .on('map-notes', (clientId, notes) => {
+      if (clientId !== CLIENT_ID) {
+        return;
+      }
+      if (notes) {
+        const mappedNotes = parseNotes(notes);
+        if (notesRegistry.length > 1) {
+          notesRegistry.pop();
+        }
+        notesRegistry.push(mappedNotes);
       }
     })
-    .on(IOEvent.TrackStart, () => toggleAllPins('off'))
-    .on(IOEvent.NoteOn, (note, noteNumber, length, sameNotes, velocity) => {
-      const notes = [note];
-      if (sameNotes?.length) {
-        notes.push(...sameNotes);
+    .on(IOEvent.TrackStart, () => toggleAllChannels('off'))
+    .on(
+      IOEvent.NoteOn,
+      (note: string, _, length: number, sameNotes, velocity) => {
+        const notes = [note];
+        if (sameNotes?.length) {
+          notes.push(...sameNotes);
+        }
+
+        // Get latest activeNotes from notes:map event
+        const activeNotes = notesRegistry[notesRegistry.length - 1];
+        const pins = notes
+          .map((n) => channels[activeNotes.indexOf(n) % channels.length])
+          .filter((p) => p);
+
+        if (!pins.length || !velocity) {
+          return;
+        }
+
+        const binaryPins = getSum(pins);
+        if (isNaN(parseInt(binaryPins))) {
+          log(notes, pins);
+          return;
+        }
+
+        let startLevel = minLevel;
+        let endLevel = maxLevel;
+
+        const autoOff = velocity >= 80 ? 1 : 0;
+        const dimUp = velocity % 20 > 10;
+
+        if (!dimUp) {
+          startLevel = maxLevel;
+          endLevel = minLevel;
+        }
+
+        const payload = `${binaryPins}${startLevel}${endLevel}${autoOff}${
+          length || 0
+        }`;
+        port.write(`${payload}\n`);
+
+        // Track dimmable notes with length, we don't turn them off
+        if (length > 1) {
+          notes.forEach((n) => {
+            lengthCache[n] = length;
+          });
+        }
       }
-
-      const pins = notes.map((n) => pinMappings[n]).filter((p) => p);
-
-      if (!pins.length || !velocity) {
+    )
+    .on(IOEvent.NoteOff, (note: string) => {
+      if (lengthCache[note]) {
         return;
       }
 
-      const binaryPins = getSum(pins);
-      if (isNaN(parseInt(binaryPins))) {
-        console.log(notes, pins);
-        return;
-      }
+      const activeNotes = notesRegistry[notesRegistry.length - 1];
+      const pin = channels[activeNotes.indexOf(note) % channels.length];
 
-      let startLevel = minLevel;
-      let endLevel = maxLevel;
-
-      const autoOff = velocity >= 80 ? 1 : 0;
-      const dimUp = velocity % 20 > 10;
-
-      if (!dimUp) {
-        startLevel = maxLevel;
-        endLevel = minLevel;
-      }
-
-      const payload = `${binaryPins}${startLevel}${endLevel}${autoOff}${
-        length || 0
-      }`;
-      port.write(`${payload}\n`);
-    })
-    .on(IOEvent.NoteOff, (note) => {
-      const pin = pinMappings[note];
-
-      if (!pin || dimmableNotes.includes(note)) {
+      if (!pin) {
         return;
       }
 
@@ -134,8 +156,10 @@ function listenForNoteMessages(socket: Socket) {
       port.write(`${payload}\n`);
     })
     .on(IOEvent.TrackEnd, () => {
-      setTimeout(() => toggleAllPins('on'), 100);
-      pinMappings = defaultPinMappings;
+      setTimeout(() => toggleAllChannels('on'), 100);
+      if (notesRegistry.length > 1) {
+        notesRegistry.pop();
+      }
     });
 
   if (LOG_MESSAGES === 'true') {
@@ -143,4 +167,18 @@ function listenForNoteMessages(socket: Socket) {
       log(args);
     });
   }
+}
+
+function parseNotes(notes: string) {
+  return notes
+    .split(',')
+    .map((n) => n.trim())
+    .filter((n) => n);
+}
+
+function getSum(pinValues: number[]) {
+  return pinValues
+    .reduce((t, v) => t + v, 0)
+    .toString()
+    .padStart(3, '0');
 }

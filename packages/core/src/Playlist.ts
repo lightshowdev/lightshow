@@ -10,7 +10,12 @@ export interface Track {
   file: string;
   disabled?: boolean;
   noteMappings?: {
-    [deviceName: string]: string;
+    [deviceName: string]: {
+      notes: string;
+      dimmableNotes: string;
+      noteNumbers?: string;
+      dimmableNoteNumbers?: string;
+    };
   };
   audio?: string;
   midi?: string;

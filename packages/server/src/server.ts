@@ -13,6 +13,7 @@ import {
   Playlist,
   Console,
   Logger,
+  SpaceCache,
   SMSConfig,
   LogLevel,
 } from '@lightshow/core';
@@ -25,6 +26,7 @@ const {
   SMS_PROVIDER = 'none',
   TRACKS_PATH = '../../config/tracks',
   ELEMENTS_PATH = '../../config/elements',
+  SPACES_PATH = '../../config/spaces',
   PORT = '3000',
   LOG_LEVELS = '*',
 } = process.env;
@@ -56,7 +58,10 @@ const {
         : ('*' as LogLevel),
   });
 
-  const trackConsole = new Console({ io, playlist, logger });
+  const spaceCache = new SpaceCache({ path: SPACES_PATH, logger });
+  spaceCache.loadSpaces();
+
+  const trackConsole = new Console({ io, playlist, logger, spaceCache });
 
   // Only one SMS plugin will be instantiated
   const smsPlugin = plugins.find((p) => p.type === 'sms');

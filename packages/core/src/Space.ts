@@ -1,3 +1,7 @@
+import * as fs from 'fs';
+import { resolve } from 'path';
+import { Logger } from './Logger';
+
 export enum EffectType {
   FadeOn = 'fade:on',
   FadeOff = 'fade:off',
@@ -26,17 +30,48 @@ export interface Element {
   node?: any;
 }
 
+export interface SpaceClient {
+  id: string;
+  octave?: string | number;
+  channels: number;
+  notes: string[][];
+  dimmableNotes?: string[][];
+  elements: Partial<Element>[];
+}
+
 export interface Space {
   id: string;
   baseNotes: string[];
-  boxes: {
-    id: string;
-    channels: number;
-    notes: string[][];
-    dimmableNotes?: string[][];
-    elements: Partial<Element>[];
-  }[];
+  boxes: SpaceClient[];
   width?: number;
   height?: number;
   elements: Element[];
+}
+
+export class SpaceCache {
+  public spaces: Space[] = [];
+  public path: string;
+  public logger: Logger;
+  public clients: SpaceClient[] = [];
+
+  constructor({ path, logger }: { path: string; logger: Logger }) {
+    this.path = path;
+    this.logger = logger.getGroupLogger('SpaceCache');
+  }
+
+  loadSpaces(file: string = 'spaces.json') {
+    const spacePath = resolve(this.path, file);
+
+    if (!fs.existsSync(spacePath)) {
+      throw new Error(`Space file not found: ${spacePath}`);
+    }
+
+    this.spaces = require(spacePath) as Space[];
+    this.clients = this.spaces.map((s) => s.boxes).flat();
+    this.logger.info({ msg: 'Spaces loaded', payload: this.spaces });
+  }
+
+  getClient(id: string) {
+    return this.clients.find((c) => c.id === id);
+  }
 }

@@ -1,3 +1,4 @@
+import { union } from 'lodash';
 const NOTES = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
 
 export const dimmableNotes = [
@@ -28,6 +29,37 @@ export function getNoteNumber(noteName) {
   const octave = Number(noteName.split('').pop());
   const noteIndex = NOTES.findIndex((n) => noteName.includes(n));
   return octave * 12 + 12 + noteIndex;
+}
+
+export function getNotesString(notes: string | string[][]) {
+  if (typeof notes === 'string') {
+    return notes;
+  }
+  return notes.flat().join(',');
+}
+
+export function getNotesArray(notes: string | string[][]) {
+  if (typeof notes === 'string') {
+    return notes.split(',');
+  }
+  return notes.flat();
+}
+
+export function mergeNotes(destination: string[], source: string | string[][]) {
+  const sourceArray = getNotesArray(source);
+  return union(destination, sourceArray);
+}
+export function getNoteNumbersString(notes: string | string[][]) {
+  if (typeof notes === 'string') {
+    return notes
+      .split(',')
+      .map((n) => getNoteNumber(n))
+      .join(',');
+  }
+  return notes
+    .flat()
+    .map((n) => getNoteNumber(n))
+    .join(',');
 }
 
 export const dimmableRange = dimmableNotes.map((n) => getNoteNumber(n));

@@ -3,16 +3,21 @@ import EventEmitter from 'events';
 
 import { AudioStream, PlayOptions, PassStream } from './streams';
 import { Midi, MidiPlayerEvent } from './Midi';
+import { getNoteNumbersString, getNotesString, mergeNotes } from './Note';
+import { SpaceCache } from './Space';
 import type { Server as SocketIOServer, Socket } from 'socket.io';
 
 import { Playlist, Track } from './Playlist';
 import { IOEvent, Logger } from './';
+import { merge } from 'lodash';
 
 export class Console extends EventEmitter {
   public playlist: Playlist;
   public io: SocketIOServer;
+  public spaceCache: SpaceCache;
   public logger: Logger;
   public disabledNotes: string[] = [];
+  public dimmableNotes: string[] = [];
   public logGroup = 'Console';
   private currentTrack: Track | null = null;
   private audioFile: string | null | undefined = null;
@@ -28,14 +33,17 @@ export class Console extends EventEmitter {
     playlist,
     io,
     logger,
+    spaceCache,
   }: {
     playlist: Playlist;
     io: SocketIOServer;
     logger: Logger;
+    spaceCache: SpaceCache;
   }) {
     super();
     this.playlist = playlist;
     this.io = io;
+    this.spaceCache = spaceCache;
     this.logger = logger.getGroupLogger(this.logGroup);
     this.io.on('connection', (socket: Socket) => {
       if (socket.handshake.auth?.id === 'player' && !this.activePlayer) {
@@ -59,6 +67,19 @@ export class Console extends EventEmitter {
 
       socket.once(IOEvent.ClientRegister, (clientId) => {
         this.logger.info({ msg: 'Client registered', clientId });
+        const space = this.spaceCache.getClient(clientId);
+        if (space?.notes) {
+          const notesString = getNotesString(space.notes);
+          const noteNumbersString = getNoteNumbersString(space.notes);
+
+          this.io.emit(
+            IOEvent.MapNotes,
+            clientId,
+            notesString,
+            `${noteNumbersString},`, // cheap trailing comma for Arduino C parsing
+            true
+          );
+        }
       });
     });
   }
@@ -90,9 +111,45 @@ export class Console extends EventEmitter {
     }
 
     if (this.midiFile) {
+      const mappedClientIds: string[] = [];
+      if (track.noteMappings) {
+        Object.entries(track.noteMappings).forEach(([clientId, mappings]) => {
+          const { notes, dimmableNotes } = mappings;
+
+          if (dimmableNotes) {
+            mappedClientIds.push(clientId);
+            this.dimmableNotes = mergeNotes(this.dimmableNotes, dimmableNotes);
+          }
+
+          const notesString = getNotesString(notes);
+          const noteNumbersString = getNoteNumbersString(notes);
+
+          this.logger.info({
+            msg: 'mapping track notes',
+            clientId,
+            notesString,
+            noteNumbersString,
+          });
+
+          this.io.emit(
+            IOEvent.MapNotes,
+            clientId,
+            notesString,
+            `${noteNumbersString},` // cheap trailing comma for Arduino C parsing
+          );
+        });
+      }
+
+      this.spaceCache.clients
+        .filter((c) => !mappedClientIds.includes(c.id) && c.dimmableNotes)
+        .forEach((c) => {
+          this.dimmableNotes = mergeNotes(this.dimmableNotes, c.dimmableNotes!);
+        });
+
       this.midiPlayer = new Midi({
         io: this.io,
         disabledNotes: disabledNotes || this.disabledNotes,
+        dimmableNotes: this.dimmableNotes,
         logger: this.logger,
       });
 
@@ -105,11 +162,6 @@ export class Console extends EventEmitter {
 
     this.playlist.setCurrentTrack(track);
 
-    if (track.noteMappings) {
-      Object.entries(track.noteMappings).forEach((deviceName, mapping) => {
-        this.io.emit(IOEvent.MapNotes, deviceName, mapping);
-      });
-    }
     this.logger.debug('Track loaded.');
   }
 
@@ -157,7 +209,7 @@ export class Console extends EventEmitter {
       this.audioStream
         .on('close', () => {
           this.midiPlayer?.stop();
-          this.logger.debug('File stream closed and MIDI play stopped.');
+          this.logger.debug('Audio stream closed and MIDI play stopped.');
           this.emitTrackEnd(track);
         })
         .on('error', (err: Error) => {
@@ -254,5 +306,6 @@ export class Console extends EventEmitter {
     this.audioFile = null;
     this.midiFile = null;
     this.passStream = null;
+    this.dimmableNotes.length = 0;
   }
 }

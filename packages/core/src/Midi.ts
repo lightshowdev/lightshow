@@ -5,7 +5,7 @@ import { sortBy } from 'lodash';
 import type { Server as SocketIOServer } from 'socket.io';
 import { IOEvent } from './IOEvent';
 import { Logger } from './Logger';
-import { dimmableRange, getNoteNumber } from './Note';
+import { getNoteNumber } from './Note';
 
 export enum MidiPlayerEvent {
   FileLoaded = 'fileLoaded',
@@ -32,6 +32,8 @@ export class Midi {
 
   public midiPlayer: MidiPlayer.Player;
   public disabledNotes: string[] = [];
+  public dimmableNotes: string[] = [];
+  public dimmableNoteNumbers: number[] = [];
   public dimmerMap: any[] = [];
   public logger: Logger;
   public timeRanges: {
@@ -48,19 +50,27 @@ export class Midi {
     io,
     logger,
     disabledNotes,
+    dimmableNotes,
   }: {
     io:
       | SocketIOServer
       | { emit: (ioEvent: IOEvent, ...payload: any[]) => void };
     logger: Logger;
     disabledNotes?: string[];
+    dimmableNotes?: string[];
   }) {
     this.io = io;
     this.midiPlayer = new MidiPlayer.Player();
     if (Array.isArray(disabledNotes)) {
       this.disabledNotes = disabledNotes;
     }
+
+    if (Array.isArray(dimmableNotes)) {
+      this.dimmableNotes = dimmableNotes;
+      this.dimmableNoteNumbers = dimmableNotes.map((n) => getNoteNumber(n));
+    }
     this.logger = logger.getGroupLogger('Midi');
+
     this.bindEvents();
   }
 
@@ -73,15 +83,21 @@ export class Midi {
       })
       .on(MidiPlayerEvent.MidiEvent, (midiEvent: MidiPlayer.Event) => {
         this.logger.debug({ msg: 'raw_event', payload: midiEvent });
-        const { name, noteName, noteNumber, tick, velocity = 0 } = midiEvent;
+        let { name } = midiEvent;
+        const { noteName, noteNumber, tick, velocity = 0 } = midiEvent;
         if (!noteNumber || !noteName) {
           return;
         }
         if (this.disabledNotes?.includes(noteName || '')) {
           return;
         }
+
+        if (velocity === 0) {
+          name = MidiEvent.NoteOff;
+        }
+
         if (name === MidiEvent.NoteOn) {
-          if (dimmableRange.includes(noteNumber)) {
+          if (this.dimmableNoteNumbers.includes(noteNumber)) {
             const computedLengthEvent = this.dimmerMap.find(
               (ev) => ev.tick === tick && ev.noteNumber === noteNumber
             );
@@ -209,7 +225,7 @@ export class Midi {
     const tempoMap = [...tempoEvents].reverse();
 
     const dimmerNotes = midiEvents[0].filter(
-      (ev) => ev.noteNumber && dimmableRange.includes(ev.noteNumber)
+      (ev) => ev.noteNumber && this.dimmableNoteNumbers.includes(ev.noteNumber)
     );
 
     this.logger.debug({ msg: 'dimmer_notes', dimmerNotes });

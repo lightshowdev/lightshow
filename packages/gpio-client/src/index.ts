@@ -1,24 +1,22 @@
 import { io, Socket } from 'socket.io-client';
 import rpio from 'rpio';
-import {
-  parsePinMappings,
-  pinMappings as defaultPinMappings,
-} from './pinMappings';
+
 import { IOEvent } from '@lightshow/core';
 import { log } from './logger';
 
-const { SERVER_URL, LOG_MESSAGES, DEVICE_NAME } = process.env;
+const { SERVER_URL, CHANNELS, LOG_MESSAGES, CLIENT_ID } = process.env;
 
-let pinMappings = defaultPinMappings;
+let channels: number[] = [];
+const notesRegistry: string[][] = [];
 
 startUp();
 
 function startUp() {
   let socket: Socket;
 
-  initializePins();
-  log(`Pins initialized:`, defaultPinMappings);
-  //  toggleAllPins('on');
+  initializeChannels();
+  log(`Channels initialized:`, channels);
+  toggleAllChannels('on');
 
   if (!SERVER_URL) {
     throw new Error('SERVER_URL must be configured');
@@ -27,49 +25,74 @@ function startUp() {
   }
 
   listenForNoteMessages(socket);
+  registerClient(socket);
 }
 
-function initializePins() {
-  if (!defaultPinMappings) {
-    throw new Error('No pins mapped. Please configure NOTE_PIN_MAPPINGS.');
+function registerClient(socket: Socket) {
+  socket.emit(IOEvent.ClientRegister, CLIENT_ID);
+}
+
+function initializeChannels() {
+  if (!CHANNELS) {
+    throw new Error('No pins mapped. Please configure CHANNELS.');
   }
-  Object.values(defaultPinMappings).forEach((p) => {
-    rpio.open(p, rpio.OUTPUT);
+  channels = CHANNELS.split(',').map((c) => parseInt(c));
+
+  channels.forEach((c) => {
+    rpio.open(c, rpio.OUTPUT);
   });
 }
 
-function toggleAllPins(mode: 'on' | 'off') {
-  if (!defaultPinMappings) {
-    throw new Error('No pins mapped. Please configure NOTE_PIN_MAPPINGS.');
+function toggleAllChannels(mode: 'on' | 'off') {
+  if (!channels) {
+    throw new Error('No channels mapped. Please configure CHANNELS.');
   }
-  Object.values(pinMappings).forEach((p) => {
+  channels.forEach((p) => {
     rpio.write(p, mode === 'on' ? rpio.HIGH : rpio.LOW);
   });
 }
 
-function togglePinByNote(note: string, mode: 'on' | 'off') {
-  const pin = pinMappings[note];
-  if (pin === undefined) {
-    console.error(`Pin ${pin} is not mapped.`);
+function toggleChannelByNote(note: string, mode: 'on' | 'off') {
+  const activeNotes = notesRegistry[notesRegistry.length - 1];
+  const pin = channels[activeNotes.indexOf(note) % channels.length];
+
+  if (!pin) {
     return;
   }
+
   rpio.write(pin, mode === 'on' ? rpio.HIGH : rpio.LOW);
 }
 
 function listenForNoteMessages(socket: Socket) {
   socket
-    .on(IOEvent.MapNotes, (deviceName, mappings) => {
-      if (deviceName === DEVICE_NAME) {
-        pinMappings = parsePinMappings(mappings);
+    .on(IOEvent.MapNotes, (clientId, notes, _, isPrimary) => {
+      if (clientId !== CLIENT_ID) {
+        return;
+      }
+
+      if (notes) {
+        const mappedNotes = parseNotes(notes);
+        if (notesRegistry.length > 1) {
+          notesRegistry.pop();
+        }
+
+        if (isPrimary) {
+          // clear all entries if primary registration
+          notesRegistry.length = 0;
+        }
+        notesRegistry.push(mappedNotes);
+        log({ notesRegistry });
       }
     })
-    .on(IOEvent.TrackStart, () => toggleAllPins('off'))
-    .on(IOEvent.NoteOn, (note: string) => togglePinByNote(note, 'on'))
-    .on(IOEvent.NoteOff, (note: string) => togglePinByNote(note, 'off'))
+    .on(IOEvent.TrackStart, () => toggleAllChannels('off'))
+    .on(IOEvent.NoteOn, (note: string) => toggleChannelByNote(note, 'on'))
+    .on(IOEvent.NoteOff, (note: string) => toggleChannelByNote(note, 'off'))
     .on(IOEvent.TrackEnd, () => {
-      toggleAllPins('on');
+      toggleAllChannels('on');
       // Reset to default pins
-      pinMappings = defaultPinMappings;
+      if (notesRegistry.length > 1) {
+        notesRegistry.pop();
+      }
     });
 
   if (LOG_MESSAGES === 'true') {
@@ -77,4 +100,11 @@ function listenForNoteMessages(socket: Socket) {
       log(args);
     });
   }
+}
+
+function parseNotes(notes: string) {
+  return notes
+    .split(',')
+    .map((n) => n.trim())
+    .filter((n) => n);
 }

@@ -109,6 +109,11 @@ const {
   app
     .use(bodyParser())
     .use(async (ctx, next) => {
+      if (smsController?.validateWebhookRequest(ctx) === false) {
+        ctx.res.statusCode = 404;
+        return;
+      }
+
       ctx.res.statusCode = 200;
       if (ctx.path === '/') {
         ctx.body = 'Welcome to @lightshow';

@@ -141,9 +141,34 @@ export class Console extends EventEmitter {
       }
 
       this.spaceCache.clients
-        .filter((c) => !mappedClientIds.includes(c.id) && c.dimmableNotes)
+        .filter((c) => !mappedClientIds.includes(c.id))
         .forEach((c) => {
-          this.dimmableNotes = mergeNotes(this.dimmableNotes, c.dimmableNotes!);
+          // always reset C based clients
+          if (c.type === 'esp' || c.type === 'arduino') {
+            const notesString = getNotesString(c.notes);
+            const noteNumbersString = getNoteNumbersString(c.notes);
+
+            this.logger.info({
+              msg: 'Remapping notes',
+              clientId: c.id,
+
+              noteNumbersString,
+            });
+
+            this.io.emit(
+              IOEvent.MapNotes,
+              c.id,
+              notesString,
+              `${noteNumbersString},` // cheap trailing comma for Arduino C parsing
+            );
+          }
+
+          if (c.dimmableNotes) {
+            this.dimmableNotes = mergeNotes(
+              this.dimmableNotes,
+              c.dimmableNotes!
+            );
+          }
         });
 
       this.midiPlayer = new Midi({
@@ -151,6 +176,7 @@ export class Console extends EventEmitter {
         disabledNotes: disabledNotes || this.disabledNotes,
         dimmableNotes: this.dimmableNotes,
         logger: this.logger,
+        velocityOverride: track.velocityOverride,
       });
 
       this.midiPlayer.loadFile({ file: this.midiFile });

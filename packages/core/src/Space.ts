@@ -32,6 +32,7 @@ export interface Element {
 
 export interface SpaceClient {
   id: string;
+  type?: 'pi' | 'esp' | 'arduino';
   octave?: string | number;
   channels: number;
   notes: string[][];

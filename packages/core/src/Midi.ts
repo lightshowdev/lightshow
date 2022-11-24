@@ -34,6 +34,7 @@ export class Midi {
   public disabledNotes: string[] = [];
   public dimmableNotes: string[] = [];
   public dimmableNoteNumbers: number[] = [];
+  public velocityOverride: number = 0;
   public dimmerMap: any[] = [];
   public logger: Logger;
   public timeRanges: {
@@ -51,6 +52,7 @@ export class Midi {
     logger,
     disabledNotes,
     dimmableNotes,
+    velocityOverride,
   }: {
     io:
       | SocketIOServer
@@ -58,6 +60,7 @@ export class Midi {
     logger: Logger;
     disabledNotes?: string[];
     dimmableNotes?: string[];
+    velocityOverride?: number;
   }) {
     this.io = io;
     this.midiPlayer = new MidiPlayer.Player();
@@ -68,6 +71,10 @@ export class Midi {
     if (Array.isArray(dimmableNotes)) {
       this.dimmableNotes = dimmableNotes;
       this.dimmableNoteNumbers = dimmableNotes.map((n) => getNoteNumber(n));
+    }
+
+    if (velocityOverride) {
+      this.velocityOverride = velocityOverride;
     }
     this.logger = logger.getGroupLogger('Midi');
 
@@ -112,7 +119,7 @@ export class Midi {
               computedLengthEvent.length,
               computedLengthEvent.sameNotes,
               // auto off (for dimmer notes)
-              velocity,
+              this.velocityOverride || velocity,
             ];
             this.logger.debug({ msg: 'event_args', payload: noteArgs });
             io.emit(IOEvent.NoteOn, ...noteArgs);

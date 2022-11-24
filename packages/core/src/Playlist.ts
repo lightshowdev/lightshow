@@ -17,6 +17,7 @@ export interface Track {
       dimmableNoteNumbers?: string;
     };
   };
+  velocityOverride?: number;
   audio?: string;
   midi?: string;
   midiEncoded?: string;

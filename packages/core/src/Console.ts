@@ -65,13 +65,14 @@ export class Console extends EventEmitter {
         return;
       }
 
-      socket.once(IOEvent.ClientRegister, (clientId) => {
+      socket.once(IOEvent.ClientRegister, async (clientId) => {
         this.logger.info({ msg: 'Client registered', clientId });
         const space = this.spaceCache.getClient(clientId);
         if (space?.notes) {
           const notesString = getNotesString(space.notes);
           const noteNumbersString = getNoteNumbersString(space.notes);
 
+          await setTimeout(300);
           this.io.emit(
             IOEvent.MapNotes,
             clientId,

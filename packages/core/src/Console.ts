@@ -9,7 +9,7 @@ import type { Server as SocketIOServer, Socket } from 'socket.io';
 
 import { Playlist, Track } from './Playlist';
 import { IOEvent, Logger } from './';
-import { merge } from 'lodash';
+import { setTimeout } from 'timers/promises';
 
 export class Console extends EventEmitter {
   public playlist: Playlist;
@@ -84,18 +84,26 @@ export class Console extends EventEmitter {
     });
   }
 
-  loadTrack({
+  async loadTrack({
     track,
     disabledNotes,
     formats = ['audio', 'midi'],
+    loadEmitTimes = 3,
   }: {
     track: Track;
     disabledNotes?: string[];
     formats?: ('audio' | 'midi')[];
+    loadEmitTimes?: number;
   }) {
     this.currentTrack = track;
 
     this.clearCaches();
+
+    // Emit multiple load events
+    for (let i = 0; i < loadEmitTimes; ++i) {
+      await setTimeout(1000);
+      this.io.emit(IOEvent.TrackLoad);
+    }
 
     if (formats.includes('audio')) {
       this.audioFile = this.playlist.getFilePath(track, 'audio');

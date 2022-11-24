@@ -1,5 +1,6 @@
 export enum IOEvent {
   TrackStart = 'track:start',
+  TrackLoad = 'track:load',
   TrackEnd = 'track:end',
   TrackTimeChange = 'track:time-change',
   TrackSeek = 'track:seek',

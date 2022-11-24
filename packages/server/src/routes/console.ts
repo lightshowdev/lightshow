@@ -19,7 +19,7 @@ consoleRouter.get('/console/track/play', async (ctx) => {
   const track = trackConsole.playlist.getTrack(trackName as string);
 
   if (track) {
-    trackConsole.loadTrack({ track });
+    await trackConsole.loadTrack({ track });
     try {
       trackConsole.playTrack();
 

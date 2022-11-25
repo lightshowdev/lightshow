@@ -1,4 +1,4 @@
-export type LogLevel = 'debug' | 'info' | 'error' | '*';
+export type LogLevel = 'debug' | 'info' | 'error' | 'verbose' | '*';
 export type LogPayload =
   | string
   | Error
@@ -69,6 +69,10 @@ export class Logger {
     }
 
     console.log(formattedLog);
+  }
+
+  verbose(payload: LogPayload) {
+    this.log({ level: 'verbose', payload });
   }
 
   debug(payload: LogPayload) {

@@ -121,7 +121,7 @@ export class Midi {
               // auto off (for dimmer notes)
               this.velocityOverride || velocity,
             ];
-            this.logger.debug({ msg: 'event_args', payload: noteArgs });
+            // this.logger.debug({ msg: 'event_args', payload: noteArgs });
             io.emit(IOEvent.NoteOn, ...noteArgs);
             return;
           }

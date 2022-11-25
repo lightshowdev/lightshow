@@ -73,6 +73,13 @@ export class Console extends EventEmitter {
           const noteNumbersString = getNoteNumbersString(space.notes);
 
           await setTimeout(300);
+
+          logger.debug({
+            msg: 'mapping notes',
+            notesString,
+            noteNumbersString,
+          });
+
           this.io.emit(
             IOEvent.MapNotes,
             clientId,
@@ -124,9 +131,9 @@ export class Console extends EventEmitter {
       if (track.noteMappings) {
         Object.entries(track.noteMappings).forEach(([clientId, mappings]) => {
           const { notes, dimmableNotes } = mappings;
+          mappedClientIds.push(clientId);
 
           if (dimmableNotes) {
-            mappedClientIds.push(clientId);
             this.dimmableNotes = mergeNotes(this.dimmableNotes, dimmableNotes);
           }
 

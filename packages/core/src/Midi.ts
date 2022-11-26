@@ -89,7 +89,7 @@ export class Midi {
         this.logger.debug('Midi file loaded.');
       })
       .on(MidiPlayerEvent.MidiEvent, (midiEvent: MidiPlayer.Event) => {
-        this.logger.debug({ msg: 'raw_event', payload: midiEvent });
+        this.logger.verbose({ msg: 'raw_event', payload: midiEvent });
         let { name } = midiEvent;
         const { noteName, noteNumber, tick, velocity = 0 } = midiEvent;
         if (!noteNumber || !noteName) {

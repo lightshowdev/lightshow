@@ -37,7 +37,7 @@ consoleRouter.get('/console/track/play', async (ctx) => {
 });
 
 consoleRouter.get('/console/track/load', async (ctx) => {
-  const { track: trackName } = ctx.query;
+  const { track: trackName, format } = ctx.query;
 
   const { trackConsole, logger }: { trackConsole: Console; logger: Logger } =
     ctx.state;
@@ -45,7 +45,10 @@ consoleRouter.get('/console/track/load', async (ctx) => {
   const track = trackConsole.playlist.getTrack(trackName as string);
 
   if (track) {
-    await trackConsole.loadTrack({ track });
+    await trackConsole.loadTrack({
+      track,
+      formats: format ? [format as 'audio' | 'midi'] : undefined,
+    });
     ctx.body = `Track loaded`;
   }
   ctx.body = `Track "${trackName}" not found.`;

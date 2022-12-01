@@ -1,4 +1,9 @@
-const { LAST_PLAY_RANGE = '0', FREQUENCY, BAND = 'FM' } = process.env;
+const {
+  LAST_PLAY_RANGE = '0',
+  FREQUENCY,
+  BAND = 'FM',
+  MESSAGE_THANK_YOU,
+} = process.env;
 import * as fs from 'fs';
 import { resolve, basename } from 'path';
 
@@ -128,7 +133,7 @@ export class Playlist {
       this.trackLog[track.file] = trackLogRecord;
     }
 
-    this.currentMessage = `${this.currentTrack.name} will now play on ${FREQUENCY} ${BAND}\nEnjoy!`;
+    this.currentMessage = `${this.currentTrack.name} will now play on ${FREQUENCY} ${BAND}\n${MESSAGE_THANK_YOU}`;
   }
 
   clearCurrentTrack(logPlay?: boolean) {

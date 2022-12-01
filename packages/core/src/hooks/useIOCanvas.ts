@@ -4,7 +4,8 @@ import { IOEvent } from '../IOEvent';
 
 import { io } from 'socket.io-client';
 import type Konva from 'konva';
-import { EffectType, Element } from '../Space';
+import { Element } from '../Space';
+import { EffectType } from '../EffectType';
 
 let socketClient;
 

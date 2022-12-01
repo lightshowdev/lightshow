@@ -128,7 +128,7 @@ export const useIOPlayerEvents = ({
         durationRef.current.innerText = getTimeString(duration);
         timeRef.current.innerText = getTimeString(0);
 
-        if (!isSafari || !isIOS) {
+        if (!isSafari && !isIOS) {
           setTimeout(() => {
             handleResume();
           }, 50);

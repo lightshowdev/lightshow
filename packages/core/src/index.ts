@@ -6,3 +6,4 @@ export * from './Note';
 export * from './Playlist';
 export * from './SMSController';
 export * from './Space';
+export * from './EffectType';

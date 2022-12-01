@@ -1,14 +1,7 @@
 import * as fs from 'fs';
 import { resolve } from 'path';
 import { Logger } from './Logger';
-
-export enum EffectType {
-  FadeOn = 'fade:on',
-  FadeOff = 'fade:off',
-  WipeUp = 'wipe:up',
-  WipeDown = 'wipe:down',
-  Cycle = 'cycle',
-}
+import { EffectType } from './EffectType';
 
 export interface Element {
   id: string;
@@ -22,7 +15,13 @@ export interface Element {
   width?: number;
   height?: number;
   src?: string;
+  /**
+   * @deprecated
+   * Use clientId instead
+   */
   box?: string;
+  clientId?: string;
+  maxChannels?: number;
   limit?: number;
   offset?: number;
   isDimmable?: boolean;

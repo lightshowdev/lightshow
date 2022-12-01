@@ -9,7 +9,7 @@ import type { Server as SocketIOServer, Socket } from 'socket.io';
 
 import { Playlist, Track } from './Playlist';
 import { IOEvent, Logger } from './';
-import { setTimeout } from 'timers/promises';
+import { setTimeout as awaitSetTimeout } from 'timers/promises';
 
 export class Console extends EventEmitter {
   public playlist: Playlist;
@@ -72,7 +72,7 @@ export class Console extends EventEmitter {
           const notesString = getNotesString(space.notes);
           const noteNumbersString = getNoteNumbersString(space.notes);
 
-          await setTimeout(300);
+          await awaitSetTimeout(300);
 
           logger.debug({
             msg: 'mapping notes',
@@ -109,7 +109,7 @@ export class Console extends EventEmitter {
 
     // Emit multiple load events
     for (let i = 0; i < loadEmitTimes; ++i) {
-      await setTimeout(1000);
+      await awaitSetTimeout(1000);
       this.io.emit(IOEvent.TrackLoad);
     }
 
@@ -151,7 +151,8 @@ export class Console extends EventEmitter {
             IOEvent.MapNotes,
             clientId,
             notesString,
-            `${noteNumbersString},` // cheap trailing comma for Arduino C parsing
+            `${noteNumbersString},`, // cheap trailing comma for Arduino C parsing
+            dimmableNotes ? getNotesString(dimmableNotes) : undefined
           );
         });
       }
@@ -159,25 +160,23 @@ export class Console extends EventEmitter {
       this.spaceCache.clients
         .filter((c) => !mappedClientIds.includes(c.id))
         .forEach((c) => {
-          // always reset C based clients
-          if (c.type === 'esp' || c.type === 'arduino') {
-            const notesString = getNotesString(c.notes);
-            const noteNumbersString = getNoteNumbersString(c.notes);
+          const notesString = getNotesString(c.notes);
+          const noteNumbersString = getNoteNumbersString(c.notes);
 
-            this.logger.info({
-              msg: 'Remapping notes',
-              clientId: c.id,
+          this.logger.info({
+            msg: 'Remapping notes',
+            clientId: c.id,
+            noteNumbersString,
+          });
 
-              noteNumbersString,
-            });
-
-            this.io.emit(
-              IOEvent.MapNotes,
-              c.id,
-              notesString,
-              `${noteNumbersString},` // cheap trailing comma for Arduino C parsing
-            );
-          }
+          this.io.emit(
+            IOEvent.MapNotes,
+            c.id,
+            notesString,
+            `${noteNumbersString},`, // cheap trailing comma for Arduino C parsing
+            c.dimmableNotes ? getNotesString(c.dimmableNotes) : undefined
+            // note numbers for dimmables can be skipped
+          );
 
           if (c.dimmableNotes) {
             this.dimmableNotes = mergeNotes(
@@ -223,6 +222,7 @@ export class Console extends EventEmitter {
     }
     // If playing a midi file only
     else if (this.midiPlayer) {
+      this.logger.debug('Playing midi only.');
       this.midiPlayer.midiPlayer.on(MidiPlayerEvent.EndOfFile, () => {
         this.emitTrackEnd(track);
       });

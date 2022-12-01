@@ -187,8 +187,10 @@ export class Midi {
 
     this.midiPlayer.skipToTick(seekMidiTicks);
 
-    // @ts-ignore
-    this.midiPlayer.setTempo(nearestTempoEvent!.tempo || 0);
+    if (nearestTempoEvent!.tempo) {
+      // @ts-ignore
+      this.midiPlayer.setTempo(nearestTempoEvent!.tempo);
+    }
   }
 
   calculateTempoDependencies() {

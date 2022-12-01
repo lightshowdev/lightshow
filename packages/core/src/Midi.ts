@@ -121,12 +121,19 @@ export class Midi {
               // auto off (for dimmer notes)
               this.velocityOverride || velocity,
             ];
-            // this.logger.debug({ msg: 'event_args', payload: noteArgs });
+            this.logger.verbose({ msg: 'dimmable note on', payload: noteArgs });
             io.emit(IOEvent.NoteOn, ...noteArgs);
             return;
           }
 
-          io.emit(IOEvent.NoteOn, noteName, noteNumber);
+          io.emit(
+            IOEvent.NoteOn,
+            noteName,
+            noteNumber,
+            0,
+            undefined,
+            this.velocityOverride || 0
+          );
         }
         if (name === MidiEvent.NoteOff) {
           io.emit(IOEvent.NoteOff, noteName, noteNumber);

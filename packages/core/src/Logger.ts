@@ -1,3 +1,10 @@
+const timeFormat = new Intl.DateTimeFormat('en', {
+  hour: '2-digit',
+  minute: '2-digit',
+  second: '2-digit',
+  fractionalSecondDigits: 3,
+});
+
 export type LogLevel = 'debug' | 'info' | 'error' | 'verbose' | '*';
 export type LogPayload =
   | string
@@ -23,7 +30,9 @@ export class Logger {
       if (typeof payload !== 'string') {
         formattedPayload = JSON.stringify(payload);
       }
-      return `[${level}] ${group ? `<${group}> ` : ''}${formattedPayload}`;
+      return `[${timeFormat.format(new Date())}]-[${level}] ${
+        group ? `<${group}> ` : ''
+      }${formattedPayload}`;
     },
   };
 

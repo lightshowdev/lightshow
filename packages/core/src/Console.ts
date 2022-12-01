@@ -187,6 +187,10 @@ export class Console extends EventEmitter {
           }
         });
 
+      this.logger.debug({
+        msg: 'merged dimmable notes',
+        notes: this.dimmableNotes,
+      });
       this.midiPlayer = new Midi({
         io: this.io,
         disabledNotes: disabledNotes || this.disabledNotes,
@@ -348,6 +352,6 @@ export class Console extends EventEmitter {
     this.audioFile = null;
     this.midiFile = null;
     this.passStream = null;
-    this.dimmableNotes.length = 0;
+    this.dimmableNotes = [];
   }
 }

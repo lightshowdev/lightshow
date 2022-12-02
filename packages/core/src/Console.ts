@@ -264,8 +264,6 @@ export class Console extends EventEmitter {
           this.emitTrackEnd(track);
         });
 
-      const passStream = (this.passStream = new PassStream());
-
       this.audioStream.once('time', (d) => {
         this.io.emit(IOEvent.TrackStart, track.file);
         if (this.midiPlayer) {
@@ -278,7 +276,7 @@ export class Console extends EventEmitter {
         this.io.emit(IOEvent.TrackTimeChange, timeData);
       });
 
-      this.audioFileStream.pipe(this.passStream!).pipe(this.audioStream);
+      this.audioFileStream.pipe(this.audioStream);
     }
   }
 

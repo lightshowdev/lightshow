@@ -47,21 +47,12 @@ export class Console extends EventEmitter {
     this.logger = logger.getGroupLogger(this.logGroup);
     this.io.on('connection', (socket: Socket) => {
       if (socket.handshake.auth?.id === 'player' && !this.activePlayer) {
-        this.logger.debug('Socket connecion for player controls established.');
-        socket.on(IOEvent.TrackSeek, (time: number) => this.seekTrack(time));
-        socket.on(IOEvent.TrackPause, () => this.pauseTrack());
-        socket.on(IOEvent.TrackResume, (time: number) =>
-          this.resumeTrack(time)
-        );
-        socket.on(IOEvent.TrackPlay, () => {
-          this.activePlayer = socket.handshake.address;
-          this.playTrack();
-        });
-        socket.on(IOEvent.TrackStop, () => this.stopTrack());
+        this.bindPlayerSocketEvents(socket);
+        return;
+      }
 
-        socket.on('disconnect', () => {
-          this.stopTrack();
-        });
+      if (socket.handshake.auth?.id === 'leaf') {
+        this.bindLeafServerEvents(socket);
         return;
       }
 
@@ -109,8 +100,8 @@ export class Console extends EventEmitter {
 
     // Emit multiple load events
     for (let i = 0; i < loadEmitTimes; ++i) {
+      this.io.emit(IOEvent.TrackLoad, track.file);
       await awaitSetTimeout(1000);
-      this.io.emit(IOEvent.TrackLoad);
     }
 
     if (formats.includes('audio')) {
@@ -352,4 +343,22 @@ export class Console extends EventEmitter {
     this.passStream = null;
     this.dimmableNotes = [];
   }
+
+  private bindPlayerSocketEvents(socket: Socket) {
+    this.logger.debug('Socket connection for player controls established.');
+    socket.on(IOEvent.TrackSeek, (time: number) => this.seekTrack(time));
+    socket.on(IOEvent.TrackPause, () => this.pauseTrack());
+    socket.on(IOEvent.TrackResume, (time: number) => this.resumeTrack(time));
+    socket.on(IOEvent.TrackPlay, () => {
+      this.activePlayer = socket.handshake.address;
+      this.playTrack();
+    });
+    socket.on(IOEvent.TrackStop, () => this.stopTrack());
+
+    socket.on('disconnect', () => {
+      this.stopTrack();
+    });
+  }
+
+  private bindLeafServerEvents(socket: Socket) {}
 }

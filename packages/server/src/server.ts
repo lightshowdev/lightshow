@@ -7,7 +7,9 @@ import bodyParser from 'koa-bodyparser';
 import serve from 'koa-static';
 import path from 'path';
 
+
 import { loadPlugins } from './loader';
+import { LeafClient } from './LeafClient';
 
 import {
   Playlist,
@@ -29,7 +31,10 @@ const {
   SPACES_PATH = '../../config/spaces',
   PORT = '3000',
   LOG_LEVELS = '*',
+  HUB_ADDRESS
 } = process.env;
+
+let leafClient: LeafClient;
 
 (async () => {
   const nextPlugins = plugins.filter((p) => p.type === 'nextjs');
@@ -83,6 +88,10 @@ const {
       [webhookHandler.method],
       webhookHandler.handler
     );
+  }
+
+  if (HUB_ADDRESS) {
+     leafClient = new LeafClient({console: trackConsole, serverAddress: HUB_ADDRESS })
   }
 
   router.all('(.*)', async (ctx) => {

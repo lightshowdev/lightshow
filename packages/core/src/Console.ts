@@ -100,7 +100,7 @@ export class Console extends EventEmitter {
 
     // Emit multiple load events
     for (let i = 0; i < loadEmitTimes; ++i) {
-      this.io.emit(IOEvent.TrackLoad, track.file);
+      this.io.emit(IOEvent.TrackLoad, track.name);
       await awaitSetTimeout(1000);
     }
 

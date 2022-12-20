@@ -52,6 +52,7 @@ export class Console extends EventEmitter {
       }
 
       if (socket.handshake.auth?.id === 'leaf') {
+        this.logger.info({ msg: 'Registering leaf node' });
         this.bindLeafServerEvents(socket);
         return;
       }
@@ -262,6 +263,10 @@ export class Console extends EventEmitter {
           setTimeout(() => {
             this.io.emit(IOEvent.MidiSync, this.midiPlayer?.getCurrentTick());
           }, 3000);
+
+          setTimeout(() => {
+            this.io.emit(IOEvent.MidiSync, this.midiPlayer?.getCurrentTick());
+          }, 6000);
         }
       });
 
@@ -339,6 +344,11 @@ export class Console extends EventEmitter {
   emitTrackEnd(track: Track) {
     if (!track.background) {
       this.io.emit(IOEvent.TrackEnd, track);
+      // Reinforce track end in case it was dropped;
+      setTimeout(() => {
+        this.io.emit(IOEvent.TrackEnd, track);
+        this.io.emit(IOEvent.TrackEnd, track);
+      }, 1000);
     }
     this.emit(IOEvent.TrackEnd, track);
     this.playlist.clearCurrentTrack();

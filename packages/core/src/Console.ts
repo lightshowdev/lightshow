@@ -226,9 +226,6 @@ export class Console extends EventEmitter {
   }
 
   stopTrack() {
-    if (!this.activePlayer) {
-      return;
-    }
     if (this.currentTrack) {
       this.emitTrackEnd(this.currentTrack);
     }

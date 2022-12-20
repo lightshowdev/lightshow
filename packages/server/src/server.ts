@@ -7,7 +7,6 @@ import bodyParser from 'koa-bodyparser';
 import serve from 'koa-static';
 import path from 'path';
 
-
 import { loadPlugins } from './loader';
 import { LeafClient } from './LeafClient';
 
@@ -31,7 +30,7 @@ const {
   SPACES_PATH = '../../config/spaces',
   PORT = '3000',
   LOG_LEVELS = '*',
-  HUB_ADDRESS
+  HUB_ADDRESS,
 } = process.env;
 
 let leafClient: LeafClient;
@@ -91,7 +90,11 @@ let leafClient: LeafClient;
   }
 
   if (HUB_ADDRESS) {
-     leafClient = new LeafClient({console: trackConsole, serverAddress: HUB_ADDRESS })
+    leafClient = new LeafClient({
+      console: trackConsole,
+      serverAddress: HUB_ADDRESS,
+    });
+    logger.info({ msg: 'Registering as leaf node', ip: HUB_ADDRESS });
   }
 
   router.all('(.*)', async (ctx) => {

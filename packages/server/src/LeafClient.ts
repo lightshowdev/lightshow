@@ -14,7 +14,7 @@ export class LeafClient {
     console: Console;
     serverAddress: string;
   }) {
-    this.socketClient = io(serverAddress);
+    this.socketClient = io(serverAddress, { auth: { id: 'leaf' } });
     this.console = console;
     this.bindEvents();
   }

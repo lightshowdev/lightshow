@@ -257,6 +257,11 @@ export class Console extends EventEmitter {
         if (this.midiPlayer) {
           this.logger.debug('MIDI play started.');
           this.midiPlayer.play({ loop: false });
+
+          // Send a follow up to leaf nodes to sync if they started late
+          setTimeout(() => {
+            this.io.emit(IOEvent.MidiSync, this.midiPlayer?.getCurrentTick());
+          }, 3000);
         }
       });
 
@@ -314,6 +319,19 @@ export class Console extends EventEmitter {
         start: time + 0.3,
         type: this.audioFileType,
       });
+      this.io.emit(IOEvent.TrackResume);
+    }
+  }
+
+  seekMidiByTick(tick: number) {
+    this.logger.debug(`Seeking to ${tick} tick`);
+    if (!this.currentTrack) {
+      return;
+    }
+
+    if (this.midiPlayer) {
+      this.midiPlayer.seekByTick(tick);
+      this.midiPlayer.play();
       this.io.emit(IOEvent.TrackResume);
     }
   }

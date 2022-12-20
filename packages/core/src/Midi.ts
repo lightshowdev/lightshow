@@ -193,6 +193,18 @@ export class Midi {
     }
   }
 
+  seekByTick(tick: number) {
+    const nearestTempo = this.getNearestTempoByTick(tick);
+    this.logger.debug(`Seeking midi to ticks ${tick}`);
+
+    this.midiPlayer.skipToTick(tick);
+
+    if (nearestTempo) {
+      // @ts-ignore
+      this.midiPlayer.setTempo(nearestTempo);
+    }
+  }
+
   calculateTempoDependencies() {
     const player = this.midiPlayer;
     const { tempo: projectTempo, division } = player;
@@ -229,14 +241,15 @@ export class Midi {
       }
     });
 
-    this.timeRanges = tempoEvents.map((ev) => ({
-      time: ev.startTime,
-      tickMs: ev.tickMs,
-      tick: ev.tick,
-      tempo: ev.data!,
-    }));
-
-    // this.logger.debug(this.timeRanges);
+    // sort reverse for optimal searching of an event with time/tick > marker
+    this.timeRanges = tempoEvents
+      .map((ev) => ({
+        time: ev.startTime,
+        tickMs: ev.tickMs,
+        tick: ev.tick,
+        tempo: ev.data!,
+      }))
+      .reverse();
 
     const tempoMap = [...tempoEvents].reverse();
 
@@ -244,7 +257,7 @@ export class Midi {
       (ev) => ev.noteNumber && this.dimmableNoteNumbers.includes(ev.noteNumber)
     );
 
-    this.logger.debug({ msg: 'dimmer_notes', dimmerNotes });
+    this.logger.verbose({ msg: 'dimmer_notes', dimmerNotes });
 
     const dimmerTimeMap: DimmerEvent[] = [];
 
@@ -302,15 +315,14 @@ export class Midi {
   }
 
   public getTickMatchingTime(seconds: number) {
-    const startRange = [...this.timeRanges]
-      .reverse()
-      .find((r) => seconds * 1000 > r.time);
+    const milliseconds = seconds * 1000;
+    const startRange = this.timeRanges.find((r) => seconds * 1000 > r.time);
 
     if (!startRange) {
       return 0;
     }
 
-    const milliSecondsWithinRange = seconds * 1000 - startRange.time;
+    const milliSecondsWithinRange = milliseconds - startRange.time;
     const ticksWithinRange = Math.floor(
       milliSecondsWithinRange / startRange.tickMs
     );
@@ -318,9 +330,8 @@ export class Midi {
   }
 
   public getNearestTempoEvent(seconds: number) {
-    const startRange = [...this.timeRanges]
-      .reverse()
-      .find((r) => seconds * 1000 > r.time);
+    const milliseconds = seconds * 1000;
+    const startRange = this.timeRanges.find((r) => milliseconds > r.time);
 
     if (!startRange) {
       return { time: 0, tick: 0 };
@@ -328,6 +339,18 @@ export class Midi {
 
     const { time, tick, tempo } = startRange;
     return { time, tick, tempo };
+  }
+
+  public getNearestTempoByTick(tick: number) {
+    const startRange = this.timeRanges.find((r) => tick > r.tick);
+    if (!startRange) {
+      return;
+    }
+    return startRange.tempo;
+  }
+
+  public getCurrentTick() {
+    return this.midiPlayer.getCurrentTick();
   }
 
   private getTickMs(division: number, tempo: number) {

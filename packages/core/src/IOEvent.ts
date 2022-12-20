@@ -12,6 +12,7 @@ export enum IOEvent {
   NoteOff = 'note:off',
   MidiFileLoaded = 'midi:file-loaded',
   MidiFileEnd = 'midi:file-end',
+  MidiSync = 'midi:sync',
   MapNotes = 'notes:map',
   ClientRegister = 'client:register',
 }

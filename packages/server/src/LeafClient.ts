@@ -25,7 +25,7 @@ export class LeafClient {
 
     trackConsole.on(IOEvent.TrackEnd, () => {
       this.trackLoaded = false;
-    })
+    });
 
     client.on(IOEvent.TrackLoad, (trackName: string) => {
       if (this.trackLoaded) {
@@ -37,18 +37,21 @@ export class LeafClient {
         return;
       }
       this.trackLoaded = true;
-      trackConsole.logger.info({msg: 'Track loaded', track});
+      trackConsole.logger.info({ msg: 'Track loaded', track });
       trackConsole.loadTrack({ track, formats: ['midi'] });
     });
 
     client.on(IOEvent.TrackStart, () => {
-      trackConsole.logger.info({msg: 'Track playing'});
-      trackConsole.playTrack();  
+      trackConsole.logger.info({ msg: 'Track playing' });
+      trackConsole.playTrack();
+    });
+
+    client.on(IOEvent.MidiSync, (tick: number) => {
+      trackConsole.seekMidiByTick(tick);
     });
 
     client.on(IOEvent.TrackEnd, () => {
       trackConsole.stopTrack();
     });
-
   }
 }

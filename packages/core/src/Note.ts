@@ -26,7 +26,7 @@ export function getNoteName(noteNumber) {
 }
 
 export function getNoteNumber(noteName) {
-  const octave = Number(noteName.split('').pop());
+  const octave = Number(noteName.replace(/[a-g]+/i, ''));
   const noteIndex = NOTES.findIndex((n) => noteName.includes(n));
   return octave * 12 + 12 + noteIndex;
 }

@@ -53,3 +53,23 @@ consoleRouter.get('/console/track/load', async (ctx) => {
   }
   ctx.body = `Track "${trackName}" not found.`;
 });
+
+consoleRouter.get('/console/track/stop', async (ctx) => {
+  const { trackConsole, logger }: { trackConsole: Console; logger: Logger } =
+    ctx.state;
+
+  if (trackConsole.playlist.currentTrack) {
+    try {
+      const { name, artist } = trackConsole.playlist.currentTrack;
+      trackConsole.stopTrack();
+
+      ctx.body = `Now playing "${name}" by ${artist}`;
+    } catch (err: any) {
+      logger.error(err);
+      ctx.status = 400;
+      ctx.body = err?.message;
+    }
+  } else {
+    ctx.body = `No track is currently playing.`;
+  }
+});

@@ -132,7 +132,7 @@ export class Midi {
             noteNumber,
             0,
             undefined,
-            this.velocityOverride || 0
+            this.velocityOverride || velocity
           );
         }
         if (name === MidiEvent.NoteOff) {

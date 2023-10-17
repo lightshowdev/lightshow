@@ -27,7 +27,14 @@ diagnosticsRouter.get('/diagnostics/io', async (ctx) => {
         parseInt((velocity as string) || '0')
       );
     });
-    ctx.body = { event, note, sameNotes, length, velocity };
+    ctx.body = {
+      event,
+      note,
+      noteNumber: getNoteNumber(note),
+      sameNotes,
+      length,
+      velocity,
+    };
     return;
   }
 

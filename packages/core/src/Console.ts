@@ -231,6 +231,10 @@ export class Console extends EventEmitter {
       this.emitTrackEnd(this.currentTrack);
     }
     this.logger.debug(`Stopping track started by ${this.activePlayer}`);
+    if (this.audioFileStream) {
+      this.audioFileStream.unpipe();
+      this.audioFileStream.destroy();
+    }
     this.activePlayer = null;
     this.midiPlayer?.stop();
   }
